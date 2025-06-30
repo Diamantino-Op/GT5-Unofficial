@@ -75,7 +75,7 @@ public abstract class MTELongDistancePipelineBase extends MTEBasicHullNonElectri
         super(aID, aName, aNameRegional, aTier, aDescription);
     }
 
-    public MTELongDistancePipelineBase(String aName, int aTier, String aDescription, ITexture[][][] aTextures) {
+    public MTELongDistancePipelineBase(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, aDescription, aTextures);
     }
 
@@ -118,7 +118,7 @@ public abstract class MTELongDistancePipelineBase extends MTEBasicHullNonElectri
         if (aBaseMetaTileEntity.isClientSide()) return true;
         ItemStack tCurrentItem = aPlayer.inventory.getCurrentItem();
         if (tCurrentItem != null) {
-            if (GTUtility.isStackInList(tCurrentItem, GregTechAPI.sSoftHammerList)) {
+            if (GTUtility.isStackInList(tCurrentItem, GregTechAPI.sSoftMalletList)) {
                 scanPipes();
                 return true;
             }

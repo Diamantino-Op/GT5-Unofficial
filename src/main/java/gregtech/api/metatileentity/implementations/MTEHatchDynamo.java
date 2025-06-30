@@ -2,7 +2,6 @@ package gregtech.api.metatileentity.implementations;
 
 import static gregtech.api.enums.GTValues.V;
 
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -27,10 +26,6 @@ public class MTEHatchDynamo extends MTEHatch {
         super(aID, aName, aNameRegional, aTier, 0, aDescription);
     }
 
-    public MTEHatchDynamo(String aName, int aTier, String aDescription, ITexture[][][] aTextures) {
-        super(aName, aTier, 0, aDescription, aTextures);
-    }
-
     public MTEHatchDynamo(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, 0, aDescription, aTextures);
     }
@@ -46,17 +41,7 @@ public class MTEHatchDynamo extends MTEHatch {
     }
 
     @Override
-    public boolean isSimpleMachine() {
-        return true;
-    }
-
-    @Override
     public boolean isFacingValid(ForgeDirection facing) {
-        return true;
-    }
-
-    @Override
-    public boolean isAccessAllowed(EntityPlayer aPlayer) {
         return true;
     }
 
@@ -73,11 +58,6 @@ public class MTEHatchDynamo extends MTEHatch {
     @Override
     public boolean isValidSlot(int aIndex) {
         return false;
-    }
-
-    @Override
-    public long getMinimumStoredEU() {
-        return 512;
     }
 
     @Override

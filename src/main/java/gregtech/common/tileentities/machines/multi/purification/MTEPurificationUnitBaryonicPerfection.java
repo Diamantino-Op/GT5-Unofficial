@@ -9,10 +9,11 @@ import static gregtech.api.enums.HatchElement.InputBus;
 import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputBus;
 import static gregtech.api.enums.HatchElement.OutputHatch;
-import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_PROCESSING_ARRAY;
-import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_PROCESSING_ARRAY_ACTIVE;
-import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_PROCESSING_ARRAY_ACTIVE_GLOW;
-import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_PROCESSING_ARRAY_GLOW;
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_WATER_T8;
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_WATER_T8_ACTIVE;
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_WATER_T8_ACTIVE_GLOW;
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_WATER_T8_GLOW;
+import static gregtech.api.util.GTRecipeBuilder.INGOTS;
 import static gregtech.api.util.GTStructureUtility.ofFrame;
 import static gregtech.api.util.GTUtility.validMTEList;
 
@@ -24,6 +25,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -169,7 +171,7 @@ public class MTEPurificationUnitBaryonicPerfection
 
     private ArrayList<ItemStack> insertedCatalysts = new ArrayList<>();
 
-    private static final long CATALYST_BASE_COST = 144L;
+    private static final long CATALYST_BASE_COST = 1 * INGOTS;
 
     private int correctStartIndex = -1;
     private int numCasings = 0;
@@ -194,21 +196,21 @@ public class MTEPurificationUnitBaryonicPerfection
         if (side == facing) {
             if (active) return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX_MAIN),
                 TextureFactory.builder()
-                    .addIcon(OVERLAY_FRONT_PROCESSING_ARRAY_ACTIVE)
+                    .addIcon(OVERLAY_FRONT_WATER_T8_ACTIVE)
                     .extFacing()
                     .build(),
                 TextureFactory.builder()
-                    .addIcon(OVERLAY_FRONT_PROCESSING_ARRAY_ACTIVE_GLOW)
+                    .addIcon(OVERLAY_FRONT_WATER_T8_ACTIVE_GLOW)
                     .extFacing()
                     .glow()
                     .build() };
             return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(CASING_INDEX_MAIN),
                 TextureFactory.builder()
-                    .addIcon(OVERLAY_FRONT_PROCESSING_ARRAY)
+                    .addIcon(OVERLAY_FRONT_WATER_T8)
                     .extFacing()
                     .build(),
                 TextureFactory.builder()
-                    .addIcon(OVERLAY_FRONT_PROCESSING_ARRAY_GLOW)
+                    .addIcon(OVERLAY_FRONT_WATER_T8_GLOW)
                     .extFacing()
                     .glow()
                     .build() };
@@ -229,7 +231,7 @@ public class MTEPurificationUnitBaryonicPerfection
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
-        return survivialBuildPiece(
+        return survivalBuildPiece(
             STRUCTURE_PIECE_MAIN,
             stackSize,
             STRUCTURE_X_OFFSET,
@@ -444,7 +446,7 @@ public class MTEPurificationUnitBaryonicPerfection
             }
         }
         // Cost is exponential in function of amount of duplicate catalysts
-        return (int) (Math.pow(2, count) * CATALYST_BASE_COST);
+        return (int) (GTUtility.powInt(2, count) * CATALYST_BASE_COST);
     }
 
     // Returns the first index of a valid combination, or -1 if there is no valid combination in the sequence
@@ -467,6 +469,7 @@ public class MTEPurificationUnitBaryonicPerfection
         super.runMachine(aBaseMetaTileEntity, aTick);
         // Every 20 ticks, add all catalysts from the input bus to the internal inventory.
         if (mMaxProgresstime > 0 && aTick % 20 == 0) {
+            startRecipeProcessing();
             ArrayList<ItemStack> storedInputs = getStoredInputs();
             // For each stack in the input, check if it is a valid catalyst item and if so consume it
             for (ItemStack stack : storedInputs) {
@@ -487,6 +490,7 @@ public class MTEPurificationUnitBaryonicPerfection
                     // If we could not drain, stop the machine
                     if (!drained) {
                         stopMachine(ShutDownReasonRegistry.outOfFluid(inputCost));
+                        endRecipeProcessing();
                         return;
                     }
                     // Now add the catalysts to the list, one by one since there may be multiples and we want to
@@ -499,6 +503,7 @@ public class MTEPurificationUnitBaryonicPerfection
                     this.depleteInput(stack);
                 }
             }
+            endRecipeProcessing();
 
             // Only do this check if we didn't find a correct combination yet
             if (correctStartIndex != -1) return;
@@ -568,7 +573,7 @@ public class MTEPurificationUnitBaryonicPerfection
 
     public String[] getInfoData() {
         ArrayList<String> info = new ArrayList<>(Arrays.asList(super.getInfoData()));
-        info.add("Catalyst insertion history for this recipe cycle");
+        info.add(StatCollector.translateToLocal("GT5U.infodata.pubp.catalyst_history"));
         for (int i = 0; i < insertedCatalysts.size(); ++i) {
             ItemStack stack = insertedCatalysts.get(i);
             String name = stack.getDisplayName();
@@ -583,13 +588,10 @@ public class MTEPurificationUnitBaryonicPerfection
                     + "-"
                     + split[1]);
         }
-        info.add("Quark Combination correctly identified: " + getCorrectlyDecodedString());
+        info.add(
+            StatCollector
+                .translateToLocalFormatted("GT5U.infodata.pubp.quark_combination", getCorrectlyDecodedString()));
         return info.toArray(new String[] {});
-    }
-
-    @Override
-    public boolean isCorrectMachinePart(ItemStack aStack) {
-        return true;
     }
 
     @Override

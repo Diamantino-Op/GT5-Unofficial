@@ -28,7 +28,6 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Textures;
-import gregtech.api.gui.modularui.GTUIInfos;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.modularui.IAddGregtechLogo;
@@ -51,11 +50,6 @@ public class MTESolarGenerator extends MTETieredMachineBlock implements IAddUIWi
             4,
             new String[] { "Generates EU From Solar Power", "Does not generate power when raining",
                 "Cleans itself automatically", "Does not explode in rain!" });
-    }
-
-    public MTESolarGenerator(String aName, int aTier, int aInvSlotCount, String aDescription,
-        ITexture[][][] aTextures) {
-        super(aName, aTier, aInvSlotCount, aDescription, aTextures);
     }
 
     public MTESolarGenerator(String aName, int aTier, int aInvSlotCount, String[] aDescription,
@@ -103,11 +97,6 @@ public class MTESolarGenerator extends MTETieredMachineBlock implements IAddUIWi
         return false;
     }
 
-    @Override
-    public boolean isAccessAllowed(EntityPlayer aPlayer) {
-        return true;
-    }
-
     // No logic for charge vs decharge because generator should not be chargeable
     @Override
     public int rechargerSlotCount() {
@@ -117,7 +106,7 @@ public class MTESolarGenerator extends MTETieredMachineBlock implements IAddUIWi
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
         float aX, float aY, float aZ) {
-        GTUIInfos.openGTTileEntityUI(aBaseMetaTileEntity, aPlayer);
+        openGui(aPlayer);
         return true;
     }
 

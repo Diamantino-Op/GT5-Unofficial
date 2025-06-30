@@ -157,6 +157,11 @@ public class MTEExtremeHeatExchanger extends MTETooltipMultiBlockBaseEM
     }
 
     @Override
+    public boolean supportsPowerPanel() {
+        return false;
+    }
+
+    @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         transformed = aNBT.getBoolean("transformed");
         if (aNBT.hasKey("hotName", Constants.NBT.TAG_STRING)) {
@@ -216,10 +221,19 @@ public class MTEExtremeHeatExchanger extends MTETooltipMultiBlockBaseEM
             .addCasingInfoExactly("EV+ Glass", 72, false)
             .addCasingInfoExactly("Pressure Resistant Wall", 48, false)
             .addCasingInfoExactly("Tungstensteel Pipe Casing", 60, false)
-            .addOtherStructurePart("Input Hatch", "Distilled water", 1)
-            .addOtherStructurePart("Output Hatch", "SC Steam/SH Steam", 2)
-            .addOtherStructurePart("Input Hatch", "Hot fluid or plasma", 3)
-            .addOtherStructurePart("Output Hatch", "Cold fluid", 4)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gg.structure.tooltip.input_hatch"),
+                "Distilled water",
+                1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gg.structure.tooltip.output_hatch"),
+                "SC Steam/SH Steam",
+                2)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("gg.structure.tooltip.input_hatch"),
+                "Hot fluid or plasma",
+                3)
+            .addOtherStructurePart(StatCollector.translateToLocal("gg.structure.tooltip.output_hatch"), "Cold fluid", 4)
             .addMaintenanceHatch("Any Casing", 1, 2, 5)
             .toolTipFinisher();
         return tt;
@@ -328,11 +342,6 @@ public class MTEExtremeHeatExchanger extends MTETooltipMultiBlockBaseEM
     }
 
     @Override
-    public int getMaxEfficiency(ItemStack aStack) {
-        return 10000;
-    }
-
-    @Override
     public String[] getInfoData() {
         int tThreshold = tRunningRecipe != null ? tRunningRecipe.mSpecialValue : 0;
         return new String[] {
@@ -397,7 +406,7 @@ public class MTEExtremeHeatExchanger extends MTETooltipMultiBlockBaseEM
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        return survivialBuildPiece(mName, stackSize, 2, 5, 0, elementBudget, env, false, true);
+        return survivalBuildPiece(mName, stackSize, 2, 5, 0, elementBudget, env, false, true);
     }
 
     private enum EHEHatches implements IHatchElement<MTEExtremeHeatExchanger> {

@@ -4,21 +4,20 @@ import static gregtech.api.enums.GTValues.AuthorColen;
 import static gregtech.api.enums.GTValues.V;
 import static gregtech.common.misc.WirelessNetworkManager.addEUToGlobalEnergyMap;
 import static gregtech.common.misc.WirelessNetworkManager.strongCheckOrAddUser;
+import static gregtech.common.misc.WirelessNetworkManager.ticks_between_energy_addition;
+import static gregtech.common.misc.WirelessNetworkManager.totalStorage;
 
 import java.util.UUID;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.interfaces.tileentity.IWirelessEnergyHatchInformation;
 import gregtech.api.metatileentity.MetaTileEntity;
 
-public class MTEWirelessDynamo extends MTEHatchDynamo implements IWirelessEnergyHatchInformation {
+public class MTEWirelessDynamo extends MTEHatchDynamo {
 
     private UUID owner_uuid;
 
@@ -41,21 +40,6 @@ public class MTEWirelessDynamo extends MTEHatchDynamo implements IWirelessEnergy
     }
 
     @Override
-    public boolean isSimpleMachine() {
-        return true;
-    }
-
-    @Override
-    public boolean isFacingValid(ForgeDirection facing) {
-        return true;
-    }
-
-    @Override
-    public boolean isAccessAllowed(EntityPlayer aPlayer) {
-        return true;
-    }
-
-    @Override
     public boolean isEnetOutput() {
         return false;
     }
@@ -66,18 +50,8 @@ public class MTEWirelessDynamo extends MTEHatchDynamo implements IWirelessEnergy
     }
 
     @Override
-    public boolean isValidSlot(int aIndex) {
-        return false;
-    }
-
-    @Override
     public long getMinimumStoredEU() {
         return 2 * V[mTier];
-    }
-
-    @Override
-    public long maxEUOutput() {
-        return V[mTier];
     }
 
     @Override
@@ -105,18 +79,6 @@ public class MTEWirelessDynamo extends MTEHatchDynamo implements IWirelessEnergy
     @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEWirelessDynamo(mName, mTier, new String[] { "" }, mTextures);
-    }
-
-    @Override
-    public boolean allowPullStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection side,
-        ItemStack aStack) {
-        return false;
-    }
-
-    @Override
-    public boolean allowPutStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection side,
-        ItemStack aStack) {
-        return false;
     }
 
     @Override

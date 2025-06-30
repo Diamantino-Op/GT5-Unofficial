@@ -15,15 +15,16 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IIcon;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import gregtech.api.GregTechAPI;
+import gregtech.api.covers.CoverRegistry;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TextureSet;
-import gregtech.api.objects.GTRenderedTexture;
+import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTLanguageManager;
 import gregtech.api.util.GTOreDictUnificator;
 import gtPlusPlus.api.objects.Logger;
@@ -35,7 +36,6 @@ import gtPlusPlus.core.util.Utils;
 import gtPlusPlus.core.util.data.StringUtils;
 import gtPlusPlus.core.util.math.MathUtils;
 import gtPlusPlus.core.util.minecraft.EntityUtils;
-import gtPlusPlus.core.util.minecraft.ItemUtils;
 import gtPlusPlus.core.util.sys.KeyboardUtils;
 
 public class BaseItemComponent extends Item {
@@ -72,11 +72,10 @@ public class BaseItemComponent extends Item {
 
         // if (componentType != ComponentTypes.DUST)
 
-        GTOreDictUnificator.registerOre(
-            componentType.getOreDictName() + material.getUnlocalizedName(),
-            ItemUtils.getSimpleStack(this));
+        GTOreDictUnificator
+            .registerOre(componentType.getOreDictName() + material.getUnlocalizedName(), new ItemStack(this));
         if (componentType == ComponentTypes.GEAR) {
-            GTOreDictUnificator.registerOre("gear" + material.getUnlocalizedName(), ItemUtils.getSimpleStack(this));
+            GTOreDictUnificator.registerOre("gear" + material.getUnlocalizedName(), new ItemStack(this));
         }
         registerComponent();
 
@@ -112,7 +111,7 @@ public class BaseItemComponent extends Item {
         GameRegistry.registerItem(this, aFormattedNameForFluids);
         GTOreDictUnificator.registerOre(
             ComponentTypes.CELL.getOreDictName() + Utils.sanitizeStringKeepBrackets(localName),
-            ItemUtils.getSimpleStack(this));
+            new ItemStack(this));
         registerComponent();
 
         GTLanguageManager
@@ -137,7 +136,7 @@ public class BaseItemComponent extends Item {
             .name();
         ItemStack x = aMap.get(aKey);
         if (x == null) {
-            aMap.put(aKey, ItemUtils.getSimpleStack(this));
+            aMap.put(aKey, new ItemStack(this));
             Logger.MATERIALS(
                 "Registering a material component. Item: [" + componentMaterial.getUnlocalizedName()
                     + "] Map: ["
@@ -145,21 +144,15 @@ public class BaseItemComponent extends Item {
                     + "]");
             Material.mComponentMap.put(componentMaterial.getUnlocalizedName(), aMap);
             if (componentType == ComponentTypes.PLATE) {
-                GregTechAPI.registerCover(
+                CoverRegistry.registerDecorativeCover(
                     componentMaterial.getPlate(1),
-                    new GTRenderedTexture(
-                        componentMaterial.getTextureSet().mTextures[71],
-                        componentMaterial.getRGBA(),
-                        false),
-                    null);
+                    TextureFactory
+                        .of(componentMaterial.getTextureSet().mTextures[71], componentMaterial.getRGBA(), false));
             } else if (componentType == ComponentTypes.PLATEDOUBLE) {
-                GregTechAPI.registerCover(
+                CoverRegistry.registerDecorativeCover(
                     componentMaterial.getPlateDouble(1),
-                    new GTRenderedTexture(
-                        componentMaterial.getTextureSet().mTextures[72],
-                        componentMaterial.getRGBA(),
-                        false),
-                    null);
+                    TextureFactory
+                        .of(componentMaterial.getTextureSet().mTextures[72], componentMaterial.getRGBA(), false));
             }
             return true;
         } else {
@@ -224,71 +217,52 @@ public class BaseItemComponent extends Item {
         final boolean bool) {
 
         try {
-
-            if (this.componentMaterial == null) {
-                if (this.materialName != null) {
-                    // list.add(Utils.sanitizeStringKeepBrackets(materialName));
-                }
-            }
-
             if (this.materialName != null && !this.materialName.isEmpty() && (this.componentMaterial != null)) {
 
-                if (this.componentMaterial != null) {
-                    if (!this.componentMaterial.vChemicalFormula.contains("?")) {
-                        list.add(Utils.sanitizeStringKeepBrackets(this.componentMaterial.vChemicalFormula));
-                    } else if (this.componentMaterial.vChemicalFormula.contains("?")) {
-                        String temp = componentMaterial.vChemicalFormula;
-                        temp = temp.replace(" ", "");
-                        temp = temp.replace("-", "");
-                        temp = temp.replace("_", "");
-                        temp = temp.replace("!", "");
-                        temp = temp.replace("@", "");
-                        temp = temp.replace("#", "");
-                        temp = temp.replace(" ", "");
-                        list.add(temp);
-                    }
+                if (!this.componentMaterial.vChemicalFormula.contains("?")) {
+                    list.add(Utils.sanitizeStringKeepBrackets(this.componentMaterial.vChemicalFormula));
+                } else if (this.componentMaterial.vChemicalFormula.contains("?")) {
+                    String temp = componentMaterial.vChemicalFormula;
+                    temp = temp.replace(" ", "");
+                    temp = temp.replace("-", "");
+                    temp = temp.replace("_", "");
+                    temp = temp.replace("!", "");
+                    temp = temp.replace("@", "");
+                    temp = temp.replace("#", "");
+                    temp = temp.replace(" ", "");
+                    list.add(temp);
+                }
 
-                    if (this.componentMaterial.isRadioactive) {
-                        list.add(GTPPCore.GT_Tooltip_Radioactive.get());
-                    }
+                if (this.componentMaterial.isRadioactive) {
+                    list.add(GTPPCore.GT_Tooltip_Radioactive.get());
+                }
 
-                    if (this.componentType == ComponentTypes.INGOT || this.componentType == ComponentTypes.HOTINGOT) {
-                        if (this.unlocalName.toLowerCase()
-                            .contains("hot")) {
-                            list.add(
-                                EnumChatFormatting.GRAY + "Warning: "
-                                    + EnumChatFormatting.RED
-                                    + "Very hot! "
-                                    + EnumChatFormatting.GRAY
-                                    + " Avoid direct handling..");
-                        }
-                    }
-                } else {
-                    String aChemicalFormula = Material.sChemicalFormula.get(materialName.toLowerCase());
-                    if (aChemicalFormula != null && !aChemicalFormula.isEmpty()) {
-                        list.add(Utils.sanitizeStringKeepBrackets(aChemicalFormula));
+                if (this.componentType == ComponentTypes.INGOT || this.componentType == ComponentTypes.HOTINGOT) {
+                    if (this.unlocalName.toLowerCase()
+                        .contains("hot")) {
+                        list.add(StatCollector.translateToLocal("gtpp.tooltip.ingot.very_hot"));
                     }
                 }
 
                 // Hidden Tooltip
                 if (KeyboardUtils.isCtrlKeyDown()) {
-                    if (this.componentMaterial != null) {
-                        String type = this.componentMaterial.getTextureSet().mSetName;
-                        String output = type.substring(0, 1)
-                            .toUpperCase() + type.substring(1);
-                        list.add(EnumChatFormatting.GRAY + "Material Type: " + output + ".");
-                        list.add(
-                            EnumChatFormatting.GRAY + "Material State: "
-                                + this.componentMaterial.getState()
-                                    .name()
-                                + ".");
-                        list.add(
-                            EnumChatFormatting.GRAY + "Radioactivity Level: "
-                                + this.componentMaterial.vRadiationLevel
-                                + ".");
-                    }
+                    String type = this.componentMaterial.getTextureSet().mSetName;
+                    String output = type.substring(0, 1)
+                        .toUpperCase() + type.substring(1);
+                    list.add(
+                        EnumChatFormatting.GRAY
+                            + StatCollector.translateToLocalFormatted("GTPP.tooltip.material.type", output));
+                    list.add(
+                        EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
+                            "GTPP.tooltip.material.state",
+                            this.componentMaterial.getState()
+                                .name()));
+                    list.add(
+                        EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
+                            "GTPP.tooltip.material.radioactivity",
+                            this.componentMaterial.vRadiationLevel));
                 } else {
-                    list.add(EnumChatFormatting.DARK_GRAY + "Hold Ctrl to show additional info.");
+                    list.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("GTPP.tooltip.hold_ctrl"));
                 }
             }
         } catch (Throwable t) {}

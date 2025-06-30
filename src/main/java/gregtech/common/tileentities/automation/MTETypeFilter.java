@@ -1,8 +1,8 @@
 package gregtech.common.tileentities.automation;
 
-import static gregtech.api.enums.GTValues.W;
 import static gregtech.api.enums.Textures.BlockIcons.AUTOMATION_TYPEFILTER;
 import static gregtech.api.enums.Textures.BlockIcons.AUTOMATION_TYPEFILTER_GLOW;
+import static gregtech.api.util.GTRecipeBuilder.WILDCARD;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,10 +56,6 @@ public class MTETypeFilter extends MTESpecialFilter {
             aNameRegional,
             aTier,
             new String[] { "Filters 1 Item Type", "Use Screwdriver to regulate output stack size" });
-    }
-
-    public MTETypeFilter(String aName, int aTier, int aInvSlotCount, String aDescription, ITexture[][][] aTextures) {
-        super(aName, aTier, aInvSlotCount, aDescription, aTextures);
     }
 
     public MTETypeFilter(String aName, int aTier, int aInvSlotCount, String[] aDescription, ITexture[][][] aTextures) {
@@ -145,7 +141,7 @@ public class MTETypeFilter extends MTESpecialFilter {
             this.mPrefix.mPrefixedItems
                 .get(this.mRotationIndex = (this.mRotationIndex + 1) % this.mPrefix.mPrefixedItems.size()));
         if (this.mInventory[FILTER_SLOT_INDEX] == null) return;
-        if (this.mInventory[FILTER_SLOT_INDEX].getItemDamage() == W) this.mInventory[9].setItemDamage(0);
+        if (this.mInventory[FILTER_SLOT_INDEX].getItemDamage() == WILDCARD) this.mInventory[9].setItemDamage(0);
     }
 
     @Override

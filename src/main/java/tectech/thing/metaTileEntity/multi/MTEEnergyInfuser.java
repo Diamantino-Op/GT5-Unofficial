@@ -6,6 +6,7 @@ import static gregtech.api.GregTechAPI.mEUtoRF;
 import static gregtech.api.util.GTStructureUtility.ofHatchAdderOptional;
 import static net.minecraft.util.StatCollector.translateToLocal;
 
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
@@ -13,11 +14,13 @@ import net.minecraftforge.fluids.FluidStack;
 
 import org.jetbrains.annotations.NotNull;
 
-import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
+import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
+import com.gtnewhorizon.structurelib.structure.IItemSource;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 
 import cofh.api.energy.IEnergyContainerItem;
 import gregtech.api.enums.Materials;
+import gregtech.api.enums.Mods;
 import gregtech.api.enums.SoundResource;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -28,7 +31,6 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.common.tileentities.machines.MTEHatchInputBusME;
 import ic2.api.item.ElectricItem;
 import ic2.api.item.IElectricItem;
-import tectech.TecTech;
 import tectech.loader.ConfigHandler;
 import tectech.thing.casing.BlockGTCasingsTT;
 import tectech.thing.casing.TTCasingsContainer;
@@ -37,7 +39,7 @@ import tectech.thing.metaTileEntity.multi.base.TTMultiblockBase;
 /**
  * Created by danie_000 on 17.12.2016.
  */
-public class MTEEnergyInfuser extends TTMultiblockBase implements IConstructable {
+public class MTEEnergyInfuser extends TTMultiblockBase implements ISurvivalConstructable {
 
     private static final int maxRepairedDamagePerOperation = 1000;
     private static final long usedEuPerDurability = 1000;
@@ -71,13 +73,11 @@ public class MTEEnergyInfuser extends TTMultiblockBase implements IConstructable
 
     public MTEEnergyInfuser(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
-        minRepairStatus = (byte) getIdealStatus();
         eDismantleBoom = true;
     }
 
     public MTEEnergyInfuser(String aName) {
         super(aName);
-        minRepairStatus = (byte) getIdealStatus();
         eDismantleBoom = true;
     }
 
@@ -89,7 +89,7 @@ public class MTEEnergyInfuser extends TTMultiblockBase implements IConstructable
         if (stack.stackSize == 1) {
             if (item instanceof IElectricItem) {
                 return ElectricItem.manager.getCharge(stack) >= ((IElectricItem) item).getMaxCharge(stack);
-            } else if (TecTech.hasCOFH && item instanceof IEnergyContainerItem) {
+            } else if (Mods.COFHCore.isModLoaded() && item instanceof IEnergyContainerItem) {
                 return ((IEnergyContainerItem) item).getEnergyStored(stack)
                     >= ((IEnergyContainerItem) item).getMaxEnergyStored(stack);
             }
@@ -109,7 +109,12 @@ public class MTEEnergyInfuser extends TTMultiblockBase implements IConstructable
         try {
             double euDiff = item.getMaxCharge(stack) - ElectricItem.manager.getCharge(stack);
             long remove = (long) Math.ceil(
-                ElectricItem.manager.charge(stack, Math.min(euDiff, getEUVar()), item.getTier(stack), true, false));
+                ElectricItem.manager.charge(
+                    stack,
+                    Math.min(euDiff, getAverageInputVoltage() * getMaxInputAmps()),
+                    item.getTier(stack),
+                    true,
+                    false));
             setEUVar(getEUVar() - remove);
             if (getEUVar() < 0) {
                 setEUVar(0);
@@ -213,13 +218,6 @@ public class MTEEnergyInfuser extends TTMultiblockBase implements IConstructable
                             }
                         }
                     }
-                    if (item instanceof IElectricItem) {
-                        doChargeItemStack((IElectricItem) item, itemStackInBus);
-                        return;
-                    } else if (TecTech.hasCOFH && item instanceof IEnergyContainerItem) {
-                        doChargeItemStackRF((IEnergyContainerItem) item, itemStackInBus);
-                        return;
-                    }
                 }
             }
         }
@@ -277,8 +275,37 @@ public class MTEEnergyInfuser extends TTMultiblockBase implements IConstructable
     }
 
     @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (!this.isAllowedToWork()) return;
+        for (MTEHatchInputBus inputBus : mInputBusses) {
+            if (inputBus instanceof MTEHatchInputBusME) continue;
+            for (ItemStack stack : inputBus.mInventory) {
+                if (stack == null || stack.stackSize != 1 || isItemStackFullyCharged(stack)) continue;
+
+                Item item = stack.getItem();
+                if (item == null) continue;
+
+                if (item instanceof IElectricItem) {
+                    doChargeItemStack((IElectricItem) item, stack);
+                    return;
+                } else if (Mods.COFHCore.isModLoaded() && item instanceof IEnergyContainerItem) {
+                    doChargeItemStackRF((IEnergyContainerItem) item, stack);
+                    return;
+                }
+            }
+        }
+    }
+
+    @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
         structureBuild_EM("main", 1, 2, 0, stackSize, hintsOnly);
+    }
+
+    @Override
+    public int survivalConstruct(ItemStack stackSize, int elementBudget, IItemSource source, EntityPlayerMP actor) {
+        if (mMachine) return -1;
+        return survivalBuildPiece("main", stackSize, 1, 2, 0, elementBudget, source, actor, false, true);
     }
 
     @Override
@@ -292,17 +319,8 @@ public class MTEEnergyInfuser extends TTMultiblockBase implements IConstructable
     }
 
     @Override
-    public boolean isPowerPassButtonEnabled() {
-        return true;
-    }
-
-    @Override
     public boolean isSafeVoidButtonEnabled() {
         return false;
     }
 
-    @Override
-    public boolean isAllowedToWorkButtonEnabled() {
-        return true;
-    }
 }

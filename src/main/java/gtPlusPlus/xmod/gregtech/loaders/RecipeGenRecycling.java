@@ -13,13 +13,14 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTUtility;
 import gtPlusPlus.api.objects.Logger;
-import gtPlusPlus.api.objects.data.Pair;
 import gtPlusPlus.core.material.Material;
 import gtPlusPlus.core.material.state.MaterialState;
 import gtPlusPlus.core.util.Utils;
@@ -71,7 +72,7 @@ public class RecipeGenRecycling implements Runnable {
                 mValidPrefixesAsString[r].name() + Utils.sanitizeString(material.getLocalizedName()),
                 1);
             if (temp != null) {
-                mValidPairs[mSlotIndex++] = new Pair<>(mValidPrefixesAsString[r], temp.copy());
+                mValidPairs[mSlotIndex++] = Pair.of(mValidPrefixesAsString[r], temp.copy());
             }
         }
 
@@ -110,7 +111,7 @@ public class RecipeGenRecycling implements Runnable {
             final ItemStack mDust = getDust(material, validPrefix.getKey());
 
             // Maceration
-            if (ItemUtils.checkForInvalidItems(tempStack) && mDust != null) {
+            if (tempStack != null && mDust != null) {
                 RA.stdBuilder()
                     .itemInputs(tempStack)
                     .itemOutputs(mDust)
@@ -126,7 +127,7 @@ public class RecipeGenRecycling implements Runnable {
             }
 
             // Fluid Extractor
-            if (ItemUtils.checkForInvalidItems(tempStack)) {
+            if (tempStack != null) {
                 int aFluidAmount = (int) ((144 * validPrefix.getKey().mMaterialAmount) / (M * tempStack.stackSize));
                 int aDuration = (int) Math.max(1, (24 * validPrefix.getKey().mMaterialAmount) / M);
                 FluidStack fluidOutput = material.getFluidStack(aFluidAmount);
@@ -183,7 +184,7 @@ public class RecipeGenRecycling implements Runnable {
 
         if (mPrefix != null && mDust != null) {
             Logger.WARNING("Built valid dust pair.");
-            return new Pair<>(mPrefix, mDust);
+            return Pair.of(mPrefix, mDust);
         } else {
             Logger.WARNING("mPrefix: " + (mPrefix != null));
             Logger.WARNING("mDust: " + (mDust != null));
@@ -300,15 +301,15 @@ public class RecipeGenRecycling implements Runnable {
                 .replace("dust", "");
             final Materials m = Materials.get(MaterialName);
             if (m != null && m != Materials._NULL) {
-                returnValue = ItemUtils.getGregtechDust(m, amount);
-                if (ItemUtils.checkForInvalidItems(returnValue)) {
+                returnValue = GTOreDictUnificator.get(OrePrefixes.dust, m, 1L);
+                if (returnValue != null) {
                     return returnValue;
                 }
             }
         }
         if (returnValue == null) {
             returnValue = getItemStackOfAmountFromOreDict(oredictName, amount);
-            if (ItemUtils.checkForInvalidItems(returnValue)) {
+            if (returnValue != null) {
                 return returnValue.copy();
             }
         }
@@ -321,7 +322,7 @@ public class RecipeGenRecycling implements Runnable {
 
         if (oredictName.toLowerCase()
             .contains("ingotclay")) {
-            return ItemUtils.getSimpleStack(Items.clay_ball, amount);
+            return new ItemStack(Items.clay_ball, amount);
         }
 
         final ArrayList<ItemStack> oreDictList = OreDictionary.getOres(oredictName);

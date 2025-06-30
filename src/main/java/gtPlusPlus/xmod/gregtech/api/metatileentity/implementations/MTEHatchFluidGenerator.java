@@ -1,6 +1,5 @@
 package gtPlusPlus.xmod.gregtech.api.metatileentity.implementations;
 
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
@@ -13,8 +12,8 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
-import gregtech.api.objects.GTRenderedTexture;
 import gregtech.api.objects.XSTR;
+import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import gtPlusPlus.core.lib.GTPPCore;
 import gtPlusPlus.core.util.minecraft.FluidUtils;
@@ -57,27 +56,12 @@ public abstract class MTEHatchFluidGenerator extends MTEHatchInput {
 
     @Override
     public ITexture[] getTexturesActive(final ITexture aBaseTexture) {
-        return new ITexture[] { aBaseTexture, new GTRenderedTexture(Textures.BlockIcons.OVERLAY_MUFFLER) };
+        return new ITexture[] { aBaseTexture, TextureFactory.of(Textures.BlockIcons.OVERLAY_MUFFLER) };
     }
 
     @Override
     public ITexture[] getTexturesInactive(final ITexture aBaseTexture) {
-        return new ITexture[] { aBaseTexture, new GTRenderedTexture(Textures.BlockIcons.OVERLAY_MUFFLER) };
-    }
-
-    @Override
-    public boolean isSimpleMachine() {
-        return true;
-    }
-
-    @Override
-    public boolean isFacingValid(final ForgeDirection facing) {
-        return true;
-    }
-
-    @Override
-    public boolean isAccessAllowed(final EntityPlayer aPlayer) {
-        return true;
+        return new ITexture[] { aBaseTexture, TextureFactory.of(Textures.BlockIcons.OVERLAY_MUFFLER) };
     }
 
     @Override
@@ -136,17 +120,7 @@ public abstract class MTEHatchFluidGenerator extends MTEHatchInput {
     public abstract void generateParticles(final World aWorld, final String name);
 
     @Override
-    public int getTankPressure() {
-        return 100;
-    }
-
-    @Override
     public abstract int getCapacity();
-
-    @Override
-    public boolean canTankBeEmptied() {
-        return true;
-    }
 
     public abstract boolean doesHatchMeetConditionsToGenerate();
 
@@ -165,11 +139,6 @@ public abstract class MTEHatchFluidGenerator extends MTEHatchInput {
             }
         }
         return aFillAmount > 0;
-    }
-
-    @Override
-    public boolean canTankBeFilled() {
-        return true;
     }
 
     @Override
@@ -226,12 +195,7 @@ public abstract class MTEHatchFluidGenerator extends MTEHatchInput {
     }
 
     @Override
-    public int fill(ForgeDirection arg0, FluidStack arg1, boolean arg2) {
-        return 0;
-    }
-
-    @Override
-    public int fill_default(ForgeDirection aSide, FluidStack aFluid, boolean doFill) {
+    public int fill(ForgeDirection side, FluidStack aFluid, boolean doFill) {
         return 0;
     }
 

@@ -116,7 +116,7 @@ public class MTEIndustrialSifter extends GTPPMultiBlockBase<MTEIndustrialSifter>
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        return survivialBuildPiece(mName, stackSize, 2, 2, 0, elementBudget, env, false, true);
+        return survivalBuildPiece(mName, stackSize, 2, 2, 0, elementBudget, env, false, true);
     }
 
     @Override
@@ -165,7 +165,7 @@ public class MTEIndustrialSifter extends GTPPMultiBlockBase<MTEIndustrialSifter>
         super.onPreTick(aBaseMetaTileEntity, aTick);
         if ((aBaseMetaTileEntity.isClientSide()) && (aBaseMetaTileEntity.isActive())
             && (aBaseMetaTileEntity.getFrontFacing() != ForgeDirection.UP)
-            && (aBaseMetaTileEntity.getCoverIDAtSide(ForgeDirection.UP) == 0)
+            && (!aBaseMetaTileEntity.hasCoverAtSide(ForgeDirection.UP))
             && (!aBaseMetaTileEntity.getOpacityAtSide(ForgeDirection.UP))) {
             final Random tRandom = aBaseMetaTileEntity.getWorld().rand;
             if (tRandom.nextFloat() > 0.4) return;
@@ -187,9 +187,10 @@ public class MTEIndustrialSifter extends GTPPMultiBlockBase<MTEIndustrialSifter>
 
     @Override
     protected ProcessingLogic createProcessingLogic() {
-        return new ProcessingLogic().setSpeedBonus(1F / 5F)
+        return new ProcessingLogic().noRecipeCaching()
+            .setSpeedBonus(1F / 5F)
             .setEuModifier(0.75F)
-            .setMaxParallelSupplier(this::getMaxParallelRecipes);
+            .setMaxParallelSupplier(this::getTrueParallel);
     }
 
     @Override
@@ -198,23 +199,8 @@ public class MTEIndustrialSifter extends GTPPMultiBlockBase<MTEIndustrialSifter>
     }
 
     @Override
-    public int getMaxEfficiency(final ItemStack aStack) {
-        return 10000;
-    }
-
-    @Override
     public int getPollutionPerSecond(final ItemStack aStack) {
         return PollutionConfig.pollutionPerSecondMultiIndustrialSifter;
-    }
-
-    @Override
-    public boolean explodesOnComponentBreak(final ItemStack aStack) {
-        return false;
-    }
-
-    @Override
-    public boolean isOverclockerUpgradable() {
-        return true;
     }
 
     @SideOnly(Side.CLIENT)

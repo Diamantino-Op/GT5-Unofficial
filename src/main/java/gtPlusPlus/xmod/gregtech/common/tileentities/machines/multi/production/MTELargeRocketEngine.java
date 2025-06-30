@@ -30,6 +30,7 @@ import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 
 import gregtech.api.enums.GTValues;
+import gregtech.api.enums.Materials;
 import gregtech.api.enums.TAE;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -44,7 +45,7 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gtPlusPlus.api.recipe.GTPPRecipeMaps;
 import gtPlusPlus.core.block.ModBlocks;
-import gtPlusPlus.core.item.chemistry.RocketFuels;
+import gtPlusPlus.core.fluids.GTPPFluids;
 import gtPlusPlus.core.material.MaterialMisc;
 import gtPlusPlus.core.util.minecraft.FluidUtils;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.METHatchAirIntake;
@@ -94,6 +95,16 @@ public class MTELargeRocketEngine extends GTPPMultiBlockBase<MTELargeRocketEngin
     }
 
     @Override
+    public boolean supportsPowerPanel() {
+        return false;
+    }
+
+    @Override
+    protected boolean filtersFluid() {
+        return false;
+    }
+
+    @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType(getMachineType())
@@ -118,7 +129,7 @@ public class MTELargeRocketEngine extends GTPPMultiBlockBase<MTELargeRocketEngin
             .addController("Front Center")
             .addCasingInfoMin(mCasingName, 64, false)
             .addCasingInfoMin(mGearboxName, 8, false)
-            .addStructureHint("Air Intake Hatch", 1)
+            .addStructureHint("item.GTPP.air_intake_hatch.name", 1)
             .addInputBus("Side center line", 1)
             .addInputHatch("Side center line", 1)
             .addMaintenanceHatch("Any Block Touching Inconel Reinforced Casing", 1)
@@ -170,7 +181,7 @@ public class MTELargeRocketEngine extends GTPPMultiBlockBase<MTELargeRocketEngin
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        return survivialBuildPiece(mName, stackSize, 1, 1, 0, elementBudget, env, false, true);
+        return survivalBuildPiece(mName, stackSize, 1, 1, 0, elementBudget, env, false, true);
     }
 
     @Override
@@ -216,7 +227,7 @@ public class MTELargeRocketEngine extends GTPPMultiBlockBase<MTELargeRocketEngin
 
     public static void setAir() {
         if (sAirFluidStack == null) {
-            sAirFluidStack = FluidUtils.getFluidStack("air", 1);
+            sAirFluidStack = Materials.Air.getGas(1);
         }
         if (sAirFluid == null && sAirFluidStack != null) {
             sAirFluid = sAirFluidStack.getFluid();
@@ -372,10 +383,9 @@ public class MTELargeRocketEngine extends GTPPMultiBlockBase<MTELargeRocketEngin
     }
 
     public boolean consumeLOH() {
+        // (40 * ((long) euProduction / 10000))
         int LOHamount = (3 * this.euProduction) / 1000;
-        return this.depleteInput(FluidUtils.getFluidStack(RocketFuels.Liquid_Hydrogen, LOHamount)); // (40 * ((long)
-                                                                                                    // euProduction /
-                                                                                                    // 10000))
+        return this.depleteInput(new FluidStack(GTPPFluids.LiquidHydrogen, LOHamount));
     }
 
     @Override
@@ -509,17 +519,12 @@ public class MTELargeRocketEngine extends GTPPMultiBlockBase<MTELargeRocketEngin
     }
 
     @Override
-    public boolean isGivingInformation() {
-        return true;
-    }
-
-    @Override
     public String getMachineType() {
         return "Rocket Engine";
     }
 
     @Override
-    public int getMaxParallelRecipes() {
-        return 1;
+    public boolean showRecipeTextInGUI() {
+        return false;
     }
 }

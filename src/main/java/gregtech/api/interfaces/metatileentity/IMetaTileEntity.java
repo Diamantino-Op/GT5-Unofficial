@@ -16,26 +16,27 @@ import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.IFluidHandler;
 import net.minecraftforge.fluids.IFluidTank;
 
-import com.gtnewhorizons.modularui.api.forge.ItemStackHandler;
+import com.cleanroommc.modularui.api.IGuiHolder;
+import com.cleanroommc.modularui.factory.PosGuiData;
+import com.cleanroommc.modularui.utils.item.IItemHandlerModifiable;
+import com.gtnewhorizon.gtnhlib.capability.CapabilityProvider;
 
-import appeng.api.crafting.ICraftingIconProvider;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.enums.Dyes;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.modularui.IGetGUITextureSet;
-import gregtech.api.interfaces.tileentity.IGearEnergyTileEntity;
+import gregtech.api.interfaces.tileentity.IGregTechDeviceInformation;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.interfaces.tileentity.IGregtechWailaProvider;
 import gregtech.api.interfaces.tileentity.IMachineBlockUpdateable;
-import gregtech.api.objects.GTItemStack;
-import gregtech.api.util.GTUtil;
 
 /**
  * Warning, this Interface has just been made to be able to add multiple kinds of MetaTileEntities (Cables, Pipes,
@@ -43,8 +44,8 @@ import gregtech.api.util.GTUtil;
  * <p/>
  * Don't implement this yourself and expect it to work. Extend @MetaTileEntity itself.
  */
-public interface IMetaTileEntity extends ISidedInventory, IFluidTank, IFluidHandler, IGearEnergyTileEntity,
-    IMachineBlockUpdateable, IGregtechWailaProvider, IGetGUITextureSet, ICraftingIconProvider {
+public interface IMetaTileEntity extends ISidedInventory, IFluidTank, IFluidHandler, IMachineBlockUpdateable,
+    IGregtechWailaProvider, IGetGUITextureSet, IGregTechDeviceInformation, CapabilityProvider, IGuiHolder<PosGuiData> {
 
     /**
      * This determines the BaseMetaTileEntity belonging to this MetaTileEntity by using the Meta ID of the Block itself.
@@ -127,7 +128,7 @@ public interface IMetaTileEntity extends ISidedInventory, IFluidTank, IFluidHand
      * If a Cover of that Type can be placed on this Side. Also Called when the Facing of the Block Changes and a Cover
      * is on said Side.
      */
-    boolean allowCoverOnSide(ForgeDirection side, GTItemStack aStack);
+    boolean allowCoverOnSide(ForgeDirection side, ItemStack coverItem);
 
     /**
      * When a Player right-clicks the Facing with a Screwdriver.
@@ -221,6 +222,11 @@ public interface IMetaTileEntity extends ISidedInventory, IFluidTank, IFluidHand
     boolean shouldDropItemAt(int index);
 
     /**
+     * Override to change which items are dropped when block is broken.
+     */
+    ArrayList<ItemStack> getDroppedItem();
+
+    /**
      * @return if aIndex can be set to Zero stackSize, when being removed.
      */
     boolean setStackToZeroInsteadOfNull(int aIndex);
@@ -310,11 +316,6 @@ public interface IMetaTileEntity extends ISidedInventory, IFluidTank, IFluidHand
     void doExplosion(long aExplosionPower);
 
     /**
-     * If this is just a simple Machine, which can be wrenched at 100%
-     */
-    boolean isSimpleMachine();
-
-    /**
      * If there should be a Lag Warning if something laggy happens during this Tick.
      * <p/>
      * The Advanced Pump uses this to not cause the Lag Message, while it scans for all close Fluids. The Item Pipes and
@@ -381,10 +382,6 @@ public interface IMetaTileEntity extends ISidedInventory, IFluidTank, IFluidHand
 
     float getExplosionResistance(ForgeDirection side);
 
-    String[] getInfoData();
-
-    boolean isGivingInformation();
-
     ItemStack[] getRealInventory();
 
     boolean connectsToItemPipe(ForgeDirection side);
@@ -393,6 +390,14 @@ public interface IMetaTileEntity extends ISidedInventory, IFluidTank, IFluidHand
 
     void onColorChangeClient(byte aColor);
 
+    default NBTTagCompound getDescriptionData() {
+        return null;
+    }
+
+    default void onDescriptionPacket(NBTTagCompound data) {
+
+    }
+
     /**
      * @return Actual color shown on GUI
      */
@@ -400,7 +405,7 @@ public interface IMetaTileEntity extends ISidedInventory, IFluidTank, IFluidHand
         if (getBaseMetaTileEntity() != null) {
             return getBaseMetaTileEntity().getGUIColorization();
         } else {
-            return GTUtil.getRGBInt(Dyes.MACHINE_METAL.getRGBA());
+            return Dyes.MACHINE_METAL.toInt();
         }
     }
 
@@ -465,12 +470,12 @@ public interface IMetaTileEntity extends ISidedInventory, IFluidTank, IFluidHand
     /*
      * ModularUI Support
      */
-    default ItemStackHandler getInventoryHandler() {
+    default IItemHandlerModifiable getInventoryHandler() {
         return null;
     }
 
     default String getLocalName() {
-        return "Unknown";
+        return StatCollector.translateToLocal("GT5U.gui.title.unknown");
     }
 
     default boolean doesBindPlayerInventory() {
@@ -494,11 +499,6 @@ public interface IMetaTileEntity extends ISidedInventory, IFluidTank, IFluidHand
      */
     default void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {}
 
-    @Override
-    default ItemStack getMachineCraftingIcon() {
-        return null;
-    }
-
     /**
      * Gets items to be displayed for HoloInventory mod.
      *
@@ -509,4 +509,11 @@ public interface IMetaTileEntity extends ISidedInventory, IFluidTank, IFluidHand
     default List<ItemStack> getItemsForHoloGlasses() {
         return null;
     }
+
+    /**
+     * Returns GUI ID used for resource packs as a distinguishable id to customize UI elements in MUI2.
+     */
+    String getGuiId();
+
+    default void onTextureUpdate() {}
 }

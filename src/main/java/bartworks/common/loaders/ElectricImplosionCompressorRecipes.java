@@ -14,7 +14,10 @@ import static gregtech.api.enums.Mods.OpenComputers;
 import static gregtech.api.enums.Mods.SuperSolarPanels;
 import static gregtech.api.enums.Mods.UniversalSingularities;
 import static gregtech.api.util.GTModHandler.getModItem;
+import static gregtech.api.util.GTRecipeBuilder.HALF_INGOTS;
+import static gregtech.api.util.GTRecipeBuilder.INGOTS;
 import static gregtech.api.util.GTRecipeBuilder.SECONDS;
+import static gregtech.api.util.GTRecipeBuilder.STACKS;
 import static gregtech.api.util.GTRecipeBuilder.TICKS;
 
 import net.minecraft.item.ItemStack;
@@ -46,7 +49,6 @@ public class ElectricImplosionCompressorRecipes implements Runnable {
                     .itemOutputs(ItemList.Circuit_Chip_Optical.get(16L))
                     .duration(5 * SECONDS)
                     .eut(TierEU.RECIPE_UMV)
-                    .noOptimize()
                     .addTo(electricImplosionCompressorRecipes);
             }
         }
@@ -59,34 +61,30 @@ public class ElectricImplosionCompressorRecipes implements Runnable {
                 GTOreDictUnificator.get(OrePrefixes.dustTiny, Materials.DarkAsh, 12L))
             .duration(1 * TICKS)
             .eut(TierEU.RECIPE_UEV)
-            .noOptimize()
             .addTo(electricImplosionCompressorRecipes);
 
         GTValues.RA.stdBuilder()
             .itemInputs(new ItemStack(highDensityPlutoniumNugget, 5))
             .itemOutputs(new ItemStack(highDensityPlutonium, 1))
-            .fluidInputs(Materials.Neutronium.getMolten(72L))
+            .fluidInputs(Materials.Neutronium.getMolten(1 * HALF_INGOTS))
             .duration(1)
             .eut(TierEU.RECIPE_UEV)
-            .noOptimize()
             .addTo(electricImplosionCompressorRecipes);
 
         GTValues.RA.stdBuilder()
             .itemInputs(new ItemStack(highDensityUraniumNugget, 5))
             .itemOutputs(new ItemStack(highDensityUranium, 1))
-            .fluidInputs(Materials.Neutronium.getMolten(72L))
+            .fluidInputs(Materials.Neutronium.getMolten(1 * HALF_INGOTS))
             .duration(1)
             .eut(TierEU.RECIPE_UEV)
-            .noOptimize()
             .addTo(electricImplosionCompressorRecipes);
 
         GTValues.RA.stdBuilder()
             .itemInputs(new ItemStack(highDensityThoriumNugget, 5))
             .itemOutputs(new ItemStack(highDensityThorium, 1))
-            .fluidInputs(Materials.Neutronium.getMolten(72L))
+            .fluidInputs(Materials.Neutronium.getMolten(1 * HALF_INGOTS))
             .duration(1)
             .eut(TierEU.RECIPE_UEV)
-            .noOptimize()
             .addTo(electricImplosionCompressorRecipes);
 
         // Magneto material recipe for base fluid.
@@ -95,11 +93,10 @@ public class ElectricImplosionCompressorRecipes implements Runnable {
                 GTOreDictUnificator.get(OrePrefixes.nanite, MaterialsUEVplus.WhiteDwarfMatter, 1L),
                 GTOreDictUnificator.get(OrePrefixes.nanite, MaterialsUEVplus.Universium, 1L),
                 GTOreDictUnificator.get(OrePrefixes.nanite, MaterialsUEVplus.BlackDwarfMatter, 1L))
-            .fluidInputs(MaterialsUEVplus.RawStarMatter.getFluid(64 * 144L))
-            .fluidOutputs(MaterialsUEVplus.MagnetohydrodynamicallyConstrainedStarMatter.getMolten(16 * 144L))
+            .fluidInputs(MaterialsUEVplus.RawStarMatter.getFluid(1 * STACKS))
+            .fluidOutputs(MaterialsUEVplus.MagnetohydrodynamicallyConstrainedStarMatter.getMolten(16 * INGOTS))
             .duration(4 * SECONDS)
             .eut(TierEU.RECIPE_UXV)
-            .noOptimize()
             .addTo(electricImplosionCompressorRecipes);
 
         // Infinity Catalyst
@@ -108,17 +105,15 @@ public class ElectricImplosionCompressorRecipes implements Runnable {
             .itemOutputs(getModItem(Avaritia.ID, "Resource", 1L, 5))
             .duration(1)
             .eut(TierEU.RECIPE_UIV)
-            .noOptimize()
             .addTo(electricImplosionCompressorRecipes);
 
         // MHDCSM V2
         GTValues.RA.stdBuilder()
             .itemInputs(MaterialsUEVplus.Eternity.getNanite(1), MaterialsUEVplus.Universium.getNanite(1))
-            .fluidInputs(MaterialsUEVplus.RawStarMatter.getFluid(128 * 144L))
-            .fluidOutputs(MaterialsUEVplus.MagnetohydrodynamicallyConstrainedStarMatter.getMolten(32 * 144L))
+            .fluidInputs(MaterialsUEVplus.RawStarMatter.getFluid(2 * STACKS))
+            .fluidOutputs(MaterialsUEVplus.MagnetohydrodynamicallyConstrainedStarMatter.getMolten(32 * INGOTS))
             .duration(4 * SECONDS)
             .eut(TierEU.RECIPE_MAX)
-            .noOptimize()
             .addTo(electricImplosionCompressorRecipes);
 
         this.addMagnetohydrodynamicallyConstrainedStarMatterPartRecipes();
@@ -145,12 +140,13 @@ public class ElectricImplosionCompressorRecipes implements Runnable {
         this.addWhiteDwarfMagnetoEICRecipe(OrePrefixes.spring, 1, 1);
         this.addWhiteDwarfMagnetoEICRecipe(OrePrefixes.gearGt, 1, 2);
         this.addWhiteDwarfMagnetoEICRecipe(OrePrefixes.wireFine, 8, 1);
+        this.addWhiteDwarfMagnetoEICRecipe(OrePrefixes.block, 1, 1);
     }
 
     private void addWhiteDwarfMagnetoEICRecipe(final OrePrefixes part, final int multiplier,
         final int circuitMultiplier) {
 
-        final int partFraction = (int) (144 * part.mMaterialAmount / M);
+        final int partFraction = (int) (part.mMaterialAmount * INGOTS / M);
 
         GTValues.RA.stdBuilder()
             .itemInputs(
@@ -164,9 +160,8 @@ public class ElectricImplosionCompressorRecipes implements Runnable {
             .fluidInputs(
                 MaterialsUEVplus.MagnetohydrodynamicallyConstrainedStarMatter
                     .getMolten((long) partFraction * multiplier))
-            .duration((int) (multiplier * (20 * partFraction / 144.0)))
+            .duration((int) (multiplier * (20 * partFraction / (float) INGOTS)))
             .eut(TierEU.RECIPE_UXV)
-            .noOptimize()
             .addTo(electricImplosionCompressorRecipes);
     }
 }

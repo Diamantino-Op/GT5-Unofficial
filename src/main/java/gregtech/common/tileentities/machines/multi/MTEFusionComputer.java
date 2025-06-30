@@ -62,7 +62,6 @@ import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
-import gregtech.api.objects.GTItemStack;
 import gregtech.api.objects.overclockdescriber.FusionOverclockDescriber;
 import gregtech.api.objects.overclockdescriber.OverclockDescriber;
 import gregtech.api.recipe.RecipeMap;
@@ -71,6 +70,7 @@ import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTRecipe;
+import gregtech.api.util.GTRecipeConstants;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
@@ -199,12 +199,6 @@ public abstract class MTEFusionComputer extends MTEEnhancedMultiBlockBase<MTEFus
     public abstract MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity);
 
     @Override
-    public boolean allowCoverOnSide(ForgeDirection side, GTItemStack aStack) {
-
-        return side != getBaseMetaTileEntity().getFrontFacing();
-    }
-
-    @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
         if (mEUt > 0) {
@@ -299,11 +293,6 @@ public abstract class MTEFusionComputer extends MTEEnhancedMultiBlockBase<MTEFus
     public abstract ITexture getTextureOverlay();
 
     @Override
-    public boolean isCorrectMachinePart(ItemStack aStack) {
-        return true;
-    }
-
-    @Override
     public RecipeMap<?> getRecipeMap() {
         return RecipeMaps.fusionRecipes;
     }
@@ -328,7 +317,8 @@ public abstract class MTEFusionComputer extends MTEEnhancedMultiBlockBase<MTEFus
             @NotNull
             @Override
             protected CheckRecipeResult validateRecipe(@NotNull GTRecipe recipe) {
-                if (!mRunningOnLoad && recipe.mSpecialValue > maxEUStore()) {
+                if (!mRunningOnLoad
+                    && recipe.getMetadataOrDefault(GTRecipeConstants.FUSION_THRESHOLD, 0L) > maxEUStore()) {
                     return CheckRecipeResultRegistry.insufficientStartupPower(recipe.mSpecialValue);
                 }
                 return CheckRecipeResultRegistry.SUCCESSFUL;
@@ -355,6 +345,7 @@ public abstract class MTEFusionComputer extends MTEEnhancedMultiBlockBase<MTEFus
         logic.setAvailableVoltage(GTValues.V[tier()]);
         logic.setAvailableAmperage(1);
         logic.setAmperageOC(false);
+        logic.setUnlimitedTierSkips();
     }
 
     public boolean turnCasingActive(boolean status) {
@@ -425,7 +416,7 @@ public abstract class MTEFusionComputer extends MTEEnhancedMultiBlockBase<MTEFus
                             mLastWorkingTick = mTotalRunTime;
                             if (mOutputFluids != null && mOutputFluids.length > 0) {
                                 try {
-                                    GTMod.achievements.issueAchivementHatchFluid(
+                                    GTMod.achievements.issueAchievementHatchFluid(
                                         aBaseMetaTileEntity.getWorld()
                                             .getPlayerEntityByName(aBaseMetaTileEntity.getOwnerName()),
                                         mOutputFluids[0]);
@@ -456,8 +447,7 @@ public abstract class MTEFusionComputer extends MTEEnhancedMultiBlockBase<MTEFus
                     stopMachine(ShutDownReasonRegistry.STRUCTURE_INCOMPLETE);
                 }
             }
-            aBaseMetaTileEntity
-                .setErrorDisplayID((aBaseMetaTileEntity.getErrorDisplayID() & ~127) | (mMachine ? 0 : 64));
+            setErrorDisplayID((getErrorDisplayID() & ~127) | (mMachine ? 0 : 64));
             aBaseMetaTileEntity.setActive(mMaxProgresstime > 0);
         } else {
             doActivitySound(getActivitySoundLoop());
@@ -466,21 +456,6 @@ public abstract class MTEFusionComputer extends MTEEnhancedMultiBlockBase<MTEFus
 
     @Override
     public boolean drainEnergyInput(long aEU) {
-        return false;
-    }
-
-    @Override
-    public int getMaxEfficiency(ItemStack aStack) {
-        return 10000;
-    }
-
-    @Override
-    public int getDamageToComponent(ItemStack aStack) {
-        return 0;
-    }
-
-    @Override
-    public boolean explodesOnComponentBreak(ItemStack aStack) {
         return false;
     }
 
@@ -504,7 +479,11 @@ public abstract class MTEFusionComputer extends MTEEnhancedMultiBlockBase<MTEFus
             }
         }
 
-        return new String[] { EnumChatFormatting.BLUE + "Fusion Reactor MK " + EnumChatFormatting.RESET + tier,
+        return new String[] {
+            EnumChatFormatting.BLUE + StatCollector.translateToLocal("GT5U.infodata.fusion_reactor_mk")
+                + " "
+                + EnumChatFormatting.RESET
+                + tier,
             StatCollector.translateToLocal("GT5U.fusion.req") + ": "
                 + EnumChatFormatting.RED
                 + GTUtility.formatNumbers(powerRequired)
@@ -527,11 +506,6 @@ public abstract class MTEFusionComputer extends MTEEnhancedMultiBlockBase<MTEFus
     }
 
     @Override
-    public boolean isGivingInformation() {
-        return true;
-    }
-
-    @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
         buildPiece(STRUCTURE_PIECE_MAIN, stackSize, hintsOnly, 7, 1, 12);
     }
@@ -539,7 +513,7 @@ public abstract class MTEFusionComputer extends MTEEnhancedMultiBlockBase<MTEFus
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        return survivialBuildPiece(STRUCTURE_PIECE_MAIN, stackSize, 7, 1, 12, elementBudget, env, false, true);
+        return survivalBuildPiece(STRUCTURE_PIECE_MAIN, stackSize, 7, 1, 12, elementBudget, env, false, true);
     }
 
     @SideOnly(Side.CLIENT)
@@ -589,34 +563,25 @@ public abstract class MTEFusionComputer extends MTEEnhancedMultiBlockBase<MTEFus
                     .setPos(10, 8))
             .widget(new FakeSyncWidget.BooleanSyncer(() -> mMachine, val -> mMachine = val))
             .widget(
-                new TextWidget("Hit with Soft Mallet to (re-)start the Machine if it doesn't start.")
+                new TextWidget(StatCollector.translateToLocal("GT5U.gui.text.fusion_computer.hit_to_start"))
                     .setDefaultColor(COLOR_TEXT_WHITE.get())
                     .setTextAlignment(Alignment.Center)
-                    .setEnabled(
-                        widget -> getBaseMetaTileEntity().getErrorDisplayID() == 0
-                            && !getBaseMetaTileEntity().isActive())
+                    .setEnabled(widget -> getErrorDisplayID() == 0 && !getBaseMetaTileEntity().isActive())
                     .setPos(-getGUIWidth() / 2, 170)
                     .setSize(getGUIWidth() * 2, 9))
-            .widget(
-                new FakeSyncWidget.IntegerSyncer(
-                    () -> getBaseMetaTileEntity().getErrorDisplayID(),
-                    val -> getBaseMetaTileEntity().setErrorDisplayID(val)))
+            .widget(new FakeSyncWidget.IntegerSyncer(() -> getErrorDisplayID(), val -> setErrorDisplayID(val)))
             .widget(
                 new FakeSyncWidget.BooleanSyncer(
                     () -> getBaseMetaTileEntity().isActive(),
                     val -> getBaseMetaTileEntity().setActive(val)))
             .widget(
-                new TextWidget("Running perfectly.").setDefaultColor(COLOR_TEXT_WHITE.get())
+                new TextWidget(StatCollector.translateToLocal("GT5U.gui.text.fusion_computer.running_perfectly"))
+                    .setDefaultColor(COLOR_TEXT_WHITE.get())
                     .setTextAlignment(Alignment.Center)
-                    .setEnabled(
-                        widget -> getBaseMetaTileEntity().getErrorDisplayID() == 0
-                            && getBaseMetaTileEntity().isActive())
+                    .setEnabled(widget -> getErrorDisplayID() == 0 && getBaseMetaTileEntity().isActive())
                     .setPos(0, 170)
                     .setSize(getGUIWidth(), 9))
-            .widget(
-                new FakeSyncWidget.IntegerSyncer(
-                    () -> getBaseMetaTileEntity().getErrorDisplayID(),
-                    val -> getBaseMetaTileEntity().setErrorDisplayID(val)))
+            .widget(new FakeSyncWidget.IntegerSyncer(this::getErrorDisplayID, this::setErrorDisplayID))
             .widget(
                 new ProgressBar()
                     .setProgress(

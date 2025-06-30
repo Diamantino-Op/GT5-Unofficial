@@ -6,7 +6,6 @@ import java.util.Random;
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
@@ -21,6 +20,7 @@ import gregtech.GTMod;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTOreDictUnificator;
 import gtPlusPlus.api.interfaces.ITexturedBlock;
 import gtPlusPlus.core.client.renderer.CustomOreBlockRenderer;
@@ -28,8 +28,6 @@ import gtPlusPlus.core.item.base.itemblock.ItemBlockOre;
 import gtPlusPlus.core.material.Material;
 import gtPlusPlus.core.util.Utils;
 import gtPlusPlus.core.util.minecraft.ItemUtils;
-import gtPlusPlus.xmod.gregtech.api.objects.GTPPCopiedBlockTexture;
-import gtPlusPlus.xmod.gregtech.api.objects.GTPPRenderedTexture;
 
 public class BlockBaseOre extends BasicBlock implements ITexturedBlock {
 
@@ -57,18 +55,11 @@ public class BlockBaseOre extends BasicBlock implements ITexturedBlock {
                 this,
                 ItemBlockOre.class,
                 Utils.sanitizeString("ore" + Utils.sanitizeString(this.blockMaterial.getLocalizedName())));
-            GTOreDictUnificator.registerOre(
-                "ore" + Utils.sanitizeString(this.blockMaterial.getLocalizedName()),
-                ItemUtils.getSimpleStack(this));
+            GTOreDictUnificator
+                .registerOre("ore" + Utils.sanitizeString(this.blockMaterial.getLocalizedName()), new ItemStack(this));
         } catch (Throwable t) {
             t.printStackTrace();
         }
-    }
-
-    @Override
-    public boolean canCreatureSpawn(final EnumCreatureType type, final IBlockAccess world, final int x, final int y,
-        final int z) {
-        return false;
     }
 
     public Material getMaterialEx() {
@@ -105,13 +96,18 @@ public class BlockBaseOre extends BasicBlock implements ITexturedBlock {
     @Override
     public ITexture[] getTexture(Block block, ForgeDirection side) {
         if (this.blockMaterial != null) {
-            GTPPRenderedTexture aIconSet = new GTPPRenderedTexture(
-                blockMaterial.getTextureSet().mTextures[OrePrefixes.ore.mTextureIndex],
-                this.blockMaterial.getRGBA());
-            return new ITexture[] { new GTPPCopiedBlockTexture(Blocks.stone, 0, 0), aIconSet };
+            ITexture texture = TextureFactory.builder()
+                .addIcon(blockMaterial.getTextureSet().mTextures[OrePrefixes.ore.mTextureIndex])
+                .setRGBA(blockMaterial.getRGBA())
+                .stdOrient()
+                .build();
+            return new ITexture[] { TextureFactory.of(Blocks.stone, 0), texture };
         }
-        return new ITexture[] {
-            new GTPPRenderedTexture(Textures.BlockIcons.STONES[0], new short[] { 240, 240, 240, 0 }) };
+        return new ITexture[] { TextureFactory.builder()
+            .addIcon(Textures.BlockIcons.STONES[0])
+            .setRGBA(new short[] { 240, 240, 240, 0 })
+            .stdOrient()
+            .build() };
     }
 
     @Override
@@ -141,7 +137,7 @@ public class BlockBaseOre extends BasicBlock implements ITexturedBlock {
     public ArrayList<ItemStack> getDrops(World world, int x, int y, int z, int metadata, int fortune) {
         ArrayList<ItemStack> drops = new ArrayList<>();
         if (shouldSilkTouch) {
-            drops.add(ItemUtils.simpleMetaStack(this, metadata, 1));
+            drops.add(new ItemStack(this, 1, metadata));
         } else {
             switch (GTMod.gregtechproxy.oreDropSystem) {
                 case Item -> drops.add(
@@ -170,12 +166,9 @@ public class BlockBaseOre extends BasicBlock implements ITexturedBlock {
                                 1));
                     }
                 }
-                // Unified ore
-                case UnifiedBlock -> drops.add(ItemUtils.simpleMetaStack(this, metadata, 1));
-                // Per Dimension ore
-                case PerDimBlock -> drops.add(ItemUtils.simpleMetaStack(this, metadata, 1));
-                // Regular ore
-                case Block -> drops.add(ItemUtils.simpleMetaStack(this, metadata, 1));
+                // Unified ore, Dimension ore, Regular ore
+                case UnifiedBlock, PerDimBlock, Block -> drops.add(new ItemStack(this, 1, metadata));
+
             }
         }
         return drops;

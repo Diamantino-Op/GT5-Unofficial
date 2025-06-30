@@ -9,10 +9,10 @@ import net.minecraft.util.IIcon;
 
 import gregtech.api.enums.TAE;
 import gregtech.api.enums.Textures;
+import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTLanguageManager;
 import gregtech.common.blocks.MaterialCasings;
 import gtPlusPlus.xmod.gregtech.api.enums.GregtechItemList;
-import gtPlusPlus.xmod.gregtech.api.objects.GTPPCopiedBlockTexture;
 import gtPlusPlus.xmod.gregtech.common.blocks.textures.TexturesGtBlock;
 
 public class GregtechMetaCasingBlocks4 extends GregtechMetaCasingBlocksAbstract {
@@ -23,7 +23,7 @@ public class GregtechMetaCasingBlocks4 extends GregtechMetaCasingBlocksAbstract 
             if (i == 2 || i == 4 || i == 5 || i == 6 || i == 7 || i == 8 || i == 12 || i == 13 || i == 14 || i == 15) {
                 continue;
             }
-            TAE.registerTexture(3, i, new GTPPCopiedBlockTexture(this, 6, i));
+            TAE.registerTexture(3, i, TextureFactory.of(this, i));
         }
         GTLanguageManager.addStringLocalization(this.getUnlocalizedName() + ".3.name", "Tempered Arc Furnace Casing");
         GTLanguageManager
@@ -61,20 +61,8 @@ public class GregtechMetaCasingBlocks4 extends GregtechMetaCasingBlocksAbstract 
                 case 4 -> {
                     return TexturesGtBlock.Casing_Coil_QFT.getIcon();
                 }
-                case 5 -> {
+                case 5, 6, 7, 8, 12, 13, 14, 15 -> {
                     return Textures.BlockIcons.RENDERING_ERROR.getIcon();
-                }
-                case 6 -> {
-                    return Textures.BlockIcons.RENDERING_ERROR.getIcon();
-                }
-                case 7 -> {
-                    return Textures.BlockIcons.RENDERING_ERROR.getIcon();
-                }
-                case 8 -> {
-                    return Textures.BlockIcons.RENDERING_ERROR.getIcon();
-                }
-                case 9 -> {
-                    return TexturesGtBlock.Casing_Material_MaragingSteel.getIcon();
                 }
                 case 10 -> {
                     if (aSide < 2) {
@@ -85,18 +73,6 @@ public class GregtechMetaCasingBlocks4 extends GregtechMetaCasingBlocksAbstract 
                 }
                 case 11 -> {
                     return TexturesGtBlock.TEXTURE_CASING_ROCKETDYNE.getIcon();
-                }
-                case 12 -> {
-                    return Textures.BlockIcons.RENDERING_ERROR.getIcon();
-                }
-                case 13 -> {
-                    return Textures.BlockIcons.RENDERING_ERROR.getIcon();
-                }
-                case 14 -> {
-                    return Textures.BlockIcons.RENDERING_ERROR.getIcon();
-                }
-                case 15 -> {
-                    return Textures.BlockIcons.RENDERING_ERROR.getIcon();
                 }
                 default -> {
                     return TexturesGtBlock.Casing_Material_MaragingSteel.getIcon();

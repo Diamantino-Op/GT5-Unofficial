@@ -2,7 +2,6 @@ package gregtech.api.metatileentity.implementations;
 
 import static gregtech.api.enums.GTValues.V;
 
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -18,15 +17,6 @@ public class MTEBasicHull extends MTEBasicTank {
         super(aID, aName, aNameRegional, aTier, 1, aDescription, aTextures);
     }
 
-    public MTEBasicHull(int aID, String aName, String aNameRegional, int aTier, int aInvSlotCount, String aDescription,
-        ITexture... aTextures) {
-        super(aID, aName, aNameRegional, aTier, aInvSlotCount, aDescription, aTextures);
-    }
-
-    public MTEBasicHull(String aName, int aTier, int aInvSlotCount, String aDescription, ITexture[][][] aTextures) {
-        super(aName, aTier, aInvSlotCount, aDescription, aTextures);
-    }
-
     public MTEBasicHull(String aName, int aTier, int aInvSlotCount, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, aInvSlotCount, aDescription, aTextures);
     }
@@ -34,11 +24,6 @@ public class MTEBasicHull extends MTEBasicTank {
     @Override
     public IMetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEBasicHull(mName, mTier, mInventory.length, mDescriptionArray, mTextures);
-    }
-
-    @Override
-    public boolean isElectric() {
-        return true;
     }
 
     @Override
@@ -52,11 +37,6 @@ public class MTEBasicHull extends MTEBasicTank {
     }
 
     @Override
-    public boolean isAccessAllowed(EntityPlayer aPlayer) {
-        return true;
-    }
-
-    @Override
     public boolean isInputFacing(ForgeDirection side) {
         return !isOutputFacing(side);
     }
@@ -64,11 +44,6 @@ public class MTEBasicHull extends MTEBasicTank {
     @Override
     public boolean isOutputFacing(ForgeDirection side) {
         return side == getBaseMetaTileEntity().getFrontFacing();
-    }
-
-    @Override
-    public long getMinimumStoredEU() {
-        return 512;
     }
 
     @Override
@@ -84,11 +59,6 @@ public class MTEBasicHull extends MTEBasicTank {
     @Override
     public long maxEUOutput() {
         return V[mTier];
-    }
-
-    @Override
-    public boolean isSimpleMachine() {
-        return true;
     }
 
     @Override
@@ -154,16 +124,6 @@ public class MTEBasicHull extends MTEBasicTank {
     @Override
     public boolean canTankBeEmptied() {
         return true;
-    }
-
-    @Override
-    public boolean displaysItemStack() {
-        return false;
-    }
-
-    @Override
-    public boolean displaysStackSize() {
-        return false;
     }
 
     @Override

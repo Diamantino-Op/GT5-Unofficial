@@ -16,7 +16,6 @@ import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.gtnewhorizons.modularui.common.widget.textfield.NumericWidget;
 
-import gregtech.api.gui.modularui.GTUIInfos;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -25,10 +24,9 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.util.GTUtility;
 import tectech.mechanics.pipe.IConnectsToEnergyTunnel;
 import tectech.thing.metaTileEntity.Textures;
-import tectech.thing.metaTileEntity.pipe.MTEPipeEnergy;
-import tectech.thing.metaTileEntity.pipe.MTEPipeEnergyMirror;
+import tectech.thing.metaTileEntity.pipe.MTEPipeLaser;
+import tectech.thing.metaTileEntity.pipe.MTEPipeLaserMirror;
 import tectech.util.CommonValues;
-import tectech.util.TTUtility;
 
 /**
  * Created by danie_000 on 16.12.2016.
@@ -51,8 +49,6 @@ public class MTEHatchDynamoTunnel extends MTEHatchDynamoMulti implements IConnec
                     + EnumChatFormatting.RESET
                     + " EU/t" },
             amps);
-
-        TTUtility.setTier(tier, this);
     }
 
     public MTEHatchDynamoTunnel(String aName, int aTier, int aAmp, String[] aDescription, ITexture[][][] aTextures) {
@@ -70,37 +66,7 @@ public class MTEHatchDynamoTunnel extends MTEHatchDynamoMulti implements IConnec
     }
 
     @Override
-    public boolean isSimpleMachine() {
-        return true;
-    }
-
-    @Override
-    public boolean isFacingValid(ForgeDirection facing) {
-        return true;
-    }
-
-    @Override
-    public boolean isAccessAllowed(EntityPlayer aPlayer) {
-        return true;
-    }
-
-    @Override
-    public boolean isOutputFacing(ForgeDirection side) {
-        return side == getBaseMetaTileEntity().getFrontFacing();
-    }
-
-    @Override
-    public boolean isValidSlot(int aIndex) {
-        return false;
-    }
-
-    @Override
     public long getMinimumStoredEU() {
-        return V[mTier];
-    }
-
-    @Override
-    public long maxEUOutput() {
         return V[mTier];
     }
 
@@ -115,11 +81,6 @@ public class MTEHatchDynamoTunnel extends MTEHatchDynamoMulti implements IConnec
     }
 
     @Override
-    public boolean isEnetInput() {
-        return false;
-    }
-
-    @Override
     public ConnectionType getConnectionType() {
         return ConnectionType.LASER;
     }
@@ -127,18 +88,6 @@ public class MTEHatchDynamoTunnel extends MTEHatchDynamoMulti implements IConnec
     @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEHatchDynamoTunnel(mName, mTier, Amperes, mDescriptionArray, mTextures);
-    }
-
-    @Override
-    public boolean allowPullStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection side,
-        ItemStack aStack) {
-        return false;
-    }
-
-    @Override
-    public boolean allowPutStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection side,
-        ItemStack aStack) {
-        return false;
     }
 
     @Override
@@ -191,7 +140,7 @@ public class MTEHatchDynamoTunnel extends MTEHatchDynamoMulti implements IConnec
                 IMetaTileEntity aMetaTileEntity = tGTTileEntity.getMetaTileEntity();
                 if (aMetaTileEntity != null) {
                     // If we hit a mirror, use the mirror's view instead
-                    if (aMetaTileEntity instanceof MTEPipeEnergyMirror tMirror) {
+                    if (aMetaTileEntity instanceof MTEPipeLaserMirror tMirror) {
 
                         tGTTileEntity = tMirror.bendAround(opposite);
                         if (tGTTileEntity == null) {
@@ -223,11 +172,11 @@ public class MTEHatchDynamoTunnel extends MTEHatchDynamoMulti implements IConnec
                                     .getStoredEU() + diff);
                         }
                         return;
-                    } else if (aMetaTileEntity instanceof MTEPipeEnergy) {
-                        if (((MTEPipeEnergy) aMetaTileEntity).connectionCount < 2) {
+                    } else if (aMetaTileEntity instanceof MTEPipeLaser) {
+                        if (((MTEPipeLaser) aMetaTileEntity).connectionCount < 2) {
                             return;
                         } else {
-                            ((MTEPipeEnergy) aMetaTileEntity).markUsed();
+                            ((MTEPipeLaser) aMetaTileEntity).markUsed();
                         }
                     } else {
                         return;
@@ -244,7 +193,7 @@ public class MTEHatchDynamoTunnel extends MTEHatchDynamoMulti implements IConnec
     @Override
     public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
         ItemStack aTool) {
-        GTUIInfos.openGTTileEntityUI(this.getBaseMetaTileEntity(), aPlayer);
+        openGui(aPlayer);
         super.onScrewdriverRightClick(side, aPlayer, aX, aY, aZ, aTool);
     }
 

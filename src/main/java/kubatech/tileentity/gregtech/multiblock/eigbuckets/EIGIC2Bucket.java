@@ -13,11 +13,13 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.oredict.OreDictionary;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.ItemList;
+import gregtech.api.util.GTUtility;
 import gregtech.common.blocks.BlockOresAbstract;
 import gregtech.common.blocks.ItemOres;
 import gregtech.common.blocks.TileEntityOres;
@@ -178,7 +180,9 @@ public class EIGIC2Bucket extends EIGBucket {
 
     @Override
     protected void getAdditionalInfoData(StringBuilder sb) {
-        sb.append(" | Humidity: ");
+        sb.append(" | ")
+            .append(StatCollector.translateToLocal("kubatech.infodata.bucket.humidity"))
+            .append(" ");
         sb.append(this.useNoHumidity ? "Off" : "On");
     }
 
@@ -425,7 +429,7 @@ public class EIGIC2Bucket extends EIGBucket {
      */
     private static double getRealAverageDropRounds(TileEntityCrop te, CropCard cc) {
         // this should be ~99.995% accurate
-        double chance = (double) cc.dropGainChance() * Math.pow(1.03, te.getGain());
+        double chance = (double) cc.dropGainChance() * GTUtility.powInt(1.03, te.getGain());
         // this is essentially just performing an integration using the composite trapezoidal rule.
         double min = -10, max = 10;
         int steps = 10000;

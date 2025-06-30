@@ -2,9 +2,9 @@ package gregtech.api.metatileentity.implementations;
 
 import static gregtech.api.enums.GTValues.V;
 import static gregtech.api.enums.GTValues.VN;
-import static gregtech.api.enums.GTValues.W;
 import static gregtech.api.enums.GTValues.ticksBetweenSounds;
 import static gregtech.api.objects.XSTR.XSTR_INSTANCE;
+import static gregtech.api.util.GTRecipeBuilder.WILDCARD;
 import static net.minecraftforge.common.util.ForgeDirection.UP;
 
 import java.util.Locale;
@@ -188,7 +188,7 @@ public class MTEBasicMachineWithRecipe extends MTEBasicMachine {
                     case STICK_DISTILLATION -> OrePrefixes.stick.get(Materials.Blaze);
 
                     case GLASS -> switch (this.mTier) {
-                        case 0, 1, 2, 3    -> new ItemStack(Blocks.glass, 1, W);
+                        case 0, 1, 2, 3    -> new ItemStack(Blocks.glass, 1, WILDCARD);
                         case 4, 5, 6, 7, 8 -> "blockGlass" + VN[aTier];
                         default            -> "blockGlass" + VN[8];
                     };
@@ -638,7 +638,7 @@ public class MTEBasicMachineWithRecipe extends MTEBasicMachine {
             // noinspection SwitchStatementWithTooFewBranches
             switch (this.mSpecialEffect) {
                 case TOP_SMOKE -> {
-                    if (aBaseMetaTileEntity.getFrontFacing() != UP && aBaseMetaTileEntity.getCoverIDAtSide(UP) == 0
+                    if (aBaseMetaTileEntity.getFrontFacing() != UP && !aBaseMetaTileEntity.hasCoverAtSide(UP)
                         && !aBaseMetaTileEntity.getOpacityAtSide(UP)) {
 
                         new ParticleEventBuilder().setMotion(0.0D, 0.0D, 0.0D)
@@ -674,7 +674,7 @@ public class MTEBasicMachineWithRecipe extends MTEBasicMachine {
                     final ForgeDirection mainFacing = this.mMainFacing;
 
                     if ((mainFacing.flag & (ForgeDirection.UP.flag | ForgeDirection.DOWN.flag)) == 0
-                        && aBaseMetaTileEntity.getCoverIDAtSide(mainFacing) == 0
+                        && !aBaseMetaTileEntity.hasCoverAtSide(mainFacing)
                         && !aBaseMetaTileEntity.getOpacityAtSide(mainFacing)) {
 
                         final double oX = aBaseMetaTileEntity.getXCoord();

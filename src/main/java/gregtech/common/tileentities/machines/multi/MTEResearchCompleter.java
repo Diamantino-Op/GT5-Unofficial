@@ -30,6 +30,7 @@ import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.OverclockCalculator;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import thaumcraft.api.aspects.Aspect;
 import thaumcraft.api.aspects.AspectList;
@@ -225,11 +226,6 @@ public class MTEResearchCompleter extends MTEEnhancedMultiBlockBase<MTEResearchC
     }
 
     @Override
-    public boolean isCorrectMachinePart(ItemStack itemStack) {
-        return true;
-    }
-
-    @Override
     public @NotNull CheckRecipeResult checkProcessing() {
         ArrayList<ItemStack> tInputList = this.getStoredInputs();
 
@@ -244,15 +240,12 @@ public class MTEResearchCompleter extends MTEEnhancedMultiBlockBase<MTEResearchC
 
                     this.mEfficiency = 10000 - (this.getIdealStatus() - this.getRepairStatus()) * 1000;
                     this.mEfficiencyIncrease = 10000;
-                    this.calculateOverclockedNessMultiInternal(
-                        RECIPE_EUT,
-                        RECIPE_LENGTH,
-                        1,
-                        this.getMaxInputVoltage(),
-                        false);
-                    if (this.mMaxProgresstime == 2147483646 && this.mEUt == 2147483646) {
-                        return CheckRecipeResultRegistry.NO_RECIPE;
-                    }
+                    OverclockCalculator calculator = new OverclockCalculator().setRecipeEUt(RECIPE_EUT)
+                        .setEUt(getMaxInputVoltage())
+                        .setDuration(RECIPE_LENGTH)
+                        .calculate();
+                    this.mEUt = (int) calculator.getConsumption();
+                    this.mMaxProgresstime = calculator.getDuration();
                     if (this.mEUt > 0) {
                         this.mEUt = -this.mEUt;
                     }
@@ -295,21 +288,6 @@ public class MTEResearchCompleter extends MTEEnhancedMultiBlockBase<MTEResearchC
         return endFound && mLength >= 3
             && checkPiece(STRUCTURE_PIECE_LAST, 0, 1, -(mLength - 1))
             && mCasing >= mLength * 3;
-    }
-
-    @Override
-    public int getMaxEfficiency(ItemStack itemStack) {
-        return 10000;
-    }
-
-    @Override
-    public int getDamageToComponent(ItemStack itemStack) {
-        return 0;
-    }
-
-    @Override
-    public boolean explodesOnComponentBreak(ItemStack itemStack) {
-        return false;
     }
 
     @Override

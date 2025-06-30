@@ -26,7 +26,6 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import gregtech.api.enums.Dyes;
 import gregtech.api.gui.GUIColorOverride;
 import gregtech.api.gui.modularui.GTUITextures;
-import gregtech.api.util.GTUtil;
 import gregtech.api.util.GTUtility;
 
 /**
@@ -45,7 +44,7 @@ public class SelectItemUIFactory {
     private int selected;
     private boolean anotherWindow = false;
     private AtomicBoolean dialogOpened;
-    private int guiTint = GTUtil.getRGBInt(Dyes.MACHINE_METAL.getRGBA());
+    private int guiTint = Dyes.MACHINE_METAL.toInt();
     private Supplier<ItemStack> currentGetter;
 
     private final GUIColorOverride colorOverride = GUIColorOverride.get("SelectItemUIFactory");
@@ -173,6 +172,10 @@ public class SelectItemUIFactory {
                     setSelected(UNSELECTED, widget);
                 }
                 selectedCallback.accept(getCandidate(getSelected()));
+                if (clickData.shift) {
+                    widget.getWindow()
+                        .tryClose();
+                }
             })
                 .setSynced(false, false)
                 .dynamicTooltip(() -> getItemTooltips(index))

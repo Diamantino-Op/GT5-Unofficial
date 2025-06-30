@@ -17,6 +17,7 @@ import static gregtech.api.util.GTStructureUtility.ofFrame;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -68,7 +69,7 @@ public class MTEPurificationUnitOzonation extends MTEPurificationUnitBase<MTEPur
     /**
      * If the player inserts more ozone gas than this amount, the multi will explode.
      */
-    public static final int MAX_OZONE_GAS_FOR_EXPLOSION = 1000 * (int) Math.pow(2, 10);
+    public static final int MAX_OZONE_GAS_FOR_EXPLOSION = 1000 * (int) GTUtility.powInt(2, 10);
 
     private int casingCount = 0;
     private static final int MIN_CASING = 96;
@@ -153,7 +154,7 @@ public class MTEPurificationUnitOzonation extends MTEPurificationUnitBase<MTEPur
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
-        return survivialBuildPiece(
+        return survivalBuildPiece(
             STRUCTURE_PIECE_MAIN,
             stackSize,
             OFFSET_X,
@@ -243,7 +244,10 @@ public class MTEPurificationUnitOzonation extends MTEPurificationUnitBase<MTEPur
             .addOutputBus(EnumChatFormatting.GOLD + "1" + EnumChatFormatting.GRAY + "+", 1)
             .addInputHatch(EnumChatFormatting.GOLD + "1" + EnumChatFormatting.GRAY + "+", 1)
             .addOutputHatch(EnumChatFormatting.GOLD + "1" + EnumChatFormatting.GRAY + "+", 1)
-            .addOtherStructurePart("Input Hatch (Ozone)", EnumChatFormatting.GOLD + "1", 2)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("GT5U.tooltip.structure.input_hatch_ozone"),
+                EnumChatFormatting.GOLD + "1",
+                2)
             .toolTipFinisher(AuthorNotAPenguin);
         return tt;
     }
@@ -273,11 +277,6 @@ public class MTEPurificationUnitOzonation extends MTEPurificationUnitBase<MTEPur
     @Override
     protected SoundResource getActivitySoundLoop() {
         return SoundResource.GT_MACHINES_OZONATION_LOOP;
-    }
-
-    @Override
-    public boolean isCorrectMachinePart(ItemStack aStack) {
-        return true;
     }
 
     @Override

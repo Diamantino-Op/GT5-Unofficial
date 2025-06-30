@@ -11,33 +11,35 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import net.minecraft.init.Items;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
 
 import gregtech.api.GregTechAPI;
-import gregtech.api.interfaces.IRecipeMap;
 import gregtech.api.objects.GTItemStack;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTRecipeBuilder;
 import gregtech.api.util.GTStreamUtil;
 import gregtech.api.util.MethodsReturnNonnullByDefault;
+import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
 
 /**
  * Responsible for recipe addition / search for recipemap.
@@ -66,9 +68,9 @@ public class RecipeMapBackend {
     private final Map<RecipeCategory, Collection<GTRecipe>> recipesByCategory = new HashMap<>();
 
     /**
-     * List of recipemaps that also receive recipe addition from this backend.
+     * Cached recipes, by commutative hash of all inputs.
      */
-    private final List<IRecipeMap> downstreams = new ArrayList<>(0);
+    private final Int2ObjectLinkedOpenHashMap<GTRecipe> cacheMap = new Int2ObjectLinkedOpenHashMap<>();
 
     /**
      * All the properties specific to this backend.
@@ -171,6 +173,7 @@ public class RecipeMapBackend {
      * Builds recipe from supplied recipe builder and adds it.
      */
     protected Collection<GTRecipe> doAdd(GTRecipeBuilder builder) {
+        properties.transformBuilder(builder);
         Iterable<? extends GTRecipe> recipes = properties.recipeEmitter.apply(builder);
         Collection<GTRecipe> ret = new ArrayList<>();
         for (GTRecipe recipe : recipes) {
@@ -182,13 +185,7 @@ public class RecipeMapBackend {
                 handleInvalidRecipeLowFluids();
                 return Collections.emptyList();
             }
-            if (properties.recipeTransformer != null) {
-                recipe = properties.recipeTransformer.apply(recipe);
-            }
-            if (recipe == null) {
-                handleInvalidRecipe();
-                continue;
-            }
+            properties.transformRecipe(recipe);
             if (builder.isCheckForCollision() && ENABLE_COLLISION_CHECK && checkCollision(recipe)) {
                 handleCollision(recipe);
                 continue;
@@ -198,12 +195,6 @@ public class RecipeMapBackend {
                 continue;
             }
             ret.add(compileRecipe(recipe));
-        }
-        if (!ret.isEmpty()) {
-            builder.clearInvalid();
-            for (IRecipeMap downstream : downstreams) {
-                downstream.doAdd(builder);
-            }
         }
         return ret;
     }
@@ -241,10 +232,6 @@ public class RecipeMapBackend {
             hasAnEntry = true;
         }
         handleRecipeCollision(errorInfo.toString());
-    }
-
-    void addDownstream(IRecipeMap downstream) {
-        downstreams.add(downstream);
     }
 
     /**
@@ -366,9 +353,9 @@ public class RecipeMapBackend {
      * @param forCollisionCheck   If this method is called to check collision with already registered recipes.
      * @return Stream of matches recipes.
      */
-    Stream<GTRecipe> matchRecipeStream(ItemStack[] rawItems, FluidStack[] fluids, @Nullable ItemStack specialSlot,
-        @Nullable GTRecipe cachedRecipe, boolean notUnificated, boolean dontCheckStackSizes,
-        boolean forCollisionCheck) {
+    Stream<GTRecipe> matchRecipeStream(@Nullable ItemStack @NotNull [] rawItems,
+        @Nullable FluidStack @NotNull [] fluids, @Nullable ItemStack specialSlot, @Nullable GTRecipe cachedRecipe,
+        boolean notUnificated, boolean dontCheckStackSizes, boolean forCollisionCheck) {
         if (doesOverwriteFindRecipe()) {
             return GTStreamUtil.ofNullable(overwriteFindRecipe(rawItems, fluids, specialSlot, cachedRecipe));
         }
@@ -414,6 +401,11 @@ public class RecipeMapBackend {
                 .filter(recipe -> filterFindRecipe(recipe, items, fluids, specialSlot, dontCheckStackSizes))
                 .map(recipe -> modifyFoundRecipe(recipe, items, fluids, specialSlot))
                 .filter(Objects::nonNull),
+            GTStreamUtil.ofSupplier(() -> cacheMap.get(hash(items, fluids)))
+                .filter(Objects::nonNull)
+                .filter(recipe -> filterFindRecipe(recipe, items, fluids, specialSlot, dontCheckStackSizes))
+                .map(recipe -> modifyFoundRecipe(recipe, items, fluids, specialSlot))
+                .filter(Objects::nonNull),
             // Now look for the recipes inside the item index, but only when the recipes actually can have items inputs.
             GTStreamUtil.ofConditional(!itemIndex.isEmpty(), items)
                 .filter(Objects::nonNull)
@@ -442,6 +434,32 @@ public class RecipeMapBackend {
             .flatMap(Function.identity());
     }
 
+    protected void cache(@Nullable ItemStack @NotNull [] items, @Nullable FluidStack @NotNull [] fluids,
+        @NotNull GTRecipe recipe) {
+        cacheMap.putAndMoveToFirst(hash(items, fluids), recipe);
+        while (cacheMap.size() > 1024) cacheMap.removeLast();
+    }
+
+    @SuppressWarnings("ForLoopReplaceableByForEach")
+    protected int hash(@Nullable ItemStack @NotNull [] items, @Nullable FluidStack @NotNull [] fluids) {
+        int hash = 0;
+        for (int i = 0; i < items.length; i++) {
+            ItemStack stack = items[i];
+            if (stack == null) continue;
+            Item item = stack.getItem();
+            assert item != null;
+            hash += item.hashCode();
+            if (item.getHasSubtypes()) hash += Items.feather.getDamage(stack);
+        }
+        for (int i = 0; i < fluids.length; i++) {
+            FluidStack stack = fluids[i];
+            if (stack == null) continue;
+            Fluid fluid = stack.getFluid();
+            hash += fluid.hashCode();
+        }
+        return hash;
+    }
+
     /**
      * The minimum filter required for recipe match logic. You can override this to have custom validation.
      * <p>
@@ -449,8 +467,8 @@ public class RecipeMapBackend {
      * <p>
      * Note that this won't be called if {@link #doesOverwriteFindRecipe} is true.
      */
-    protected boolean filterFindRecipe(GTRecipe recipe, ItemStack[] items, FluidStack[] fluids,
-        @Nullable ItemStack specialSlot, boolean dontCheckStackSizes) {
+    protected boolean filterFindRecipe(@NotNull GTRecipe recipe, @Nullable ItemStack @NotNull [] items,
+        @Nullable FluidStack @NotNull [] fluids, @Nullable ItemStack specialSlot, boolean dontCheckStackSizes) {
         if (recipe.mEnabled && !recipe.mFakeRecipe
             && recipe.isRecipeInputEqual(false, dontCheckStackSizes, fluids, items)) {
             return !properties.specialSlotSensitive

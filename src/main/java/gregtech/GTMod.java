@@ -6,6 +6,7 @@ import static gregtech.GT_Version.VERSION_PATCH;
 import static gregtech.api.enums.Mods.Forestry;
 import static gregtech.api.util.GTRecipe.setItemStacks;
 
+import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -16,13 +17,11 @@ import java.util.Map;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.CraftingManager;
 import net.minecraft.item.crafting.FurnaceRecipes;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.util.WeightedRandomChestContent;
-import net.minecraft.world.World;
 import net.minecraftforge.common.ChestGenHooks;
 
 import org.apache.logging.log4j.LogManager;
@@ -33,7 +32,6 @@ import com.google.common.collect.SetMultimap;
 import com.gtnewhorizon.gtnhlib.config.ConfigException;
 import com.gtnewhorizon.gtnhlib.config.ConfigurationManager;
 
-import appeng.api.AEApi;
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.SidedProxy;
@@ -46,8 +44,8 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerAboutToStartEvent;
 import cpw.mods.fml.common.event.FMLServerStartedEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
+import cpw.mods.fml.common.event.FMLServerStoppedEvent;
 import cpw.mods.fml.common.event.FMLServerStoppingEvent;
-import cpw.mods.fml.common.registry.GameRegistry;
 import galacticgreg.SpaceDimRegisterer;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enchants.EnchantmentEnderDamage;
@@ -60,9 +58,13 @@ import gregtech.api.enums.Mods;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.Textures;
 import gregtech.api.gui.modularui.GTUIInfos;
+import gregtech.api.interfaces.IBlockWithClientMeta;
 import gregtech.api.interfaces.internal.IGTMod;
 import gregtech.api.metatileentity.BaseMetaPipeEntity;
-import gregtech.api.metatileentity.implementations.MTEHatchNonConsumableBase;
+import gregtech.api.modularui2.GTGuiTextures;
+import gregtech.api.modularui2.GTGuiTheme;
+import gregtech.api.modularui2.GTGuis;
+import gregtech.api.modularui2.GTWidgetThemes;
 import gregtech.api.objects.GTItemStack;
 import gregtech.api.objects.ItemData;
 import gregtech.api.objects.XSTR;
@@ -76,7 +78,6 @@ import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTRecipeRegistrator;
-import gregtech.api.util.GTSpawnEventHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.common.GTDummyWorld;
 import gregtech.common.GTNetwork;
@@ -88,20 +89,18 @@ import gregtech.common.config.MachineStats;
 import gregtech.common.config.OPStuff;
 import gregtech.common.config.Other;
 import gregtech.common.config.Worldgen;
-import gregtech.common.covers.CoverFacadeAE;
+import gregtech.common.handlers.PowerGogglesConfigHandler;
 import gregtech.common.misc.GTCommand;
+import gregtech.common.misc.GTStructureChannels;
 import gregtech.common.misc.spaceprojects.commands.SPCommand;
 import gregtech.common.misc.spaceprojects.commands.SPMCommand;
 import gregtech.common.misc.spaceprojects.commands.SpaceProjectCommand;
-import gregtech.common.tileentities.machines.MTEHatchCraftingInputME;
-import gregtech.common.tileentities.storage.MTEDigitalChestBase;
+import gregtech.crossmod.ae2.AE2Compat;
 import gregtech.crossmod.holoinventory.HoloInventory;
 import gregtech.crossmod.waila.Waila;
-import gregtech.loaders.load.CoverBehaviorLoader;
 import gregtech.loaders.load.FuelLoader;
 import gregtech.loaders.load.GTItemIterator;
 import gregtech.loaders.load.MTERecipeLoader;
-import gregtech.loaders.load.SonictronLoader;
 import gregtech.loaders.misc.CoverLoader;
 import gregtech.loaders.misc.GTAchievements;
 import gregtech.loaders.misc.GTBees;
@@ -115,6 +114,7 @@ import gregtech.loaders.postload.GTWorldgenloader;
 import gregtech.loaders.postload.ItemMaxStacksizeLoader;
 import gregtech.loaders.postload.MachineRecipeLoader;
 import gregtech.loaders.postload.MachineTooltipsLoader;
+import gregtech.loaders.postload.MissingMappingsHandler;
 import gregtech.loaders.postload.PosteaTransformers;
 import gregtech.loaders.postload.RecyclerBlacklistLoader;
 import gregtech.loaders.postload.ScrapboxDropLoader;
@@ -123,6 +123,7 @@ import gregtech.loaders.preload.LoaderCircuitBehaviors;
 import gregtech.loaders.preload.LoaderGTBlockFluid;
 import gregtech.loaders.preload.LoaderGTItemData;
 import gregtech.loaders.preload.LoaderGTOreDictionary;
+import gregtech.loaders.preload.LoaderMetaPipeEntities;
 import gregtech.loaders.preload.LoaderMetaTileEntities;
 import gregtech.loaders.preload.LoaderOreProcessing;
 import ic2.api.recipe.IRecipeInput;
@@ -134,7 +135,7 @@ import ic2.api.recipe.RecipeOutput;
     version = "MC1710",
     guiFactory = "gregtech.client.GTGuiFactory",
     dependencies = " required-after:IC2;" + " required-after:structurelib;"
-        + " required-after:gtnhlib@[0.5.22,);"
+        + " required-after:gtnhlib@[0.6.31,);"
         + " required-after:modularui@[1.1.12,);"
         + " required-after:appliedenergistics2@[rv3-beta-258,);"
         + " after:dreamcraft;"
@@ -212,12 +213,8 @@ public class GTMod implements IGTMod {
     public static final boolean DEBUG = Boolean.getBoolean("gt.debug");
 
     public static GTAchievements achievements;
-    @Deprecated
-    public static final String aTextGeneral = "general";
-    public static final String aTextIC2 = "ic2_";
     public static final Logger GT_FML_LOGGER = LogManager.getLogger("GregTech GTNH");
 
-    @SuppressWarnings("deprecation")
     public GTMod() {
         GTValues.GT = this;
         GTValues.DW = new GTDummyWorld();
@@ -230,9 +227,6 @@ public class GTMod implements IGTMod {
         for (int i = 4; i < 12; i++) {
             GregTechAPI.registerTileEntityConstructor(i, i2 -> new BaseMetaPipeEntity());
         }
-
-        // noinspection deprecation// Need run-time initialization
-        GregTechAPI.sRecipeAdder = GTValues.RA;
 
         // noinspection ResultOfMethodCallIgnored// Suspicious likely pointless
         Textures.BlockIcons.VOID.name();
@@ -264,11 +258,19 @@ public class GTMod implements IGTMod {
             aEvent.getModConfigurationDirectory()
                 .getParentFile());
 
+        PowerGogglesConfigHandler.init(new File(aEvent.getModConfigurationDirectory() + "/GregTech/Goggles.cfg"));
+
         gregtechproxy.onPreLoad();
 
         GTLog.out.println("GTMod: Setting Configs");
 
         GTPreLoad.loadConfig();
+
+        // ModularUI
+        GTGuis.registerFactories();
+        GTGuiTextures.init();
+        GTGuiTheme.registerThemes();
+        GTWidgetThemes.register();
 
         new EnchantmentHazmat();
         new EnchantmentEnderDamage();
@@ -281,10 +283,7 @@ public class GTMod implements IGTMod {
                 .getParentFile());
         GTPreLoad.adjustScrap();
 
-        AEApi.instance()
-            .registries()
-            .interfaceTerminal()
-            .register(MTEHatchCraftingInputME.class);
+        AE2Compat.onPreInit();
 
         GTPreLoad.runMineTweakerCompat();
 
@@ -293,11 +292,9 @@ public class GTMod implements IGTMod {
         new LoaderGTItemData().run();
         new LoaderGTBlockFluid().run();
         new LoaderMetaTileEntities().run();
+        new LoaderMetaPipeEntities().run();
 
         new LoaderCircuitBehaviors().run();
-        new CoverBehaviorLoader().run();
-        new SonictronLoader().run();
-        new GTSpawnEventHandler();
 
         // populate itemstack instance for NBT check in GTRecipe
         setItemStacks();
@@ -308,6 +305,8 @@ public class GTMod implements IGTMod {
         GTLog.ore.println("GTMod: Preload-Phase finished!");
 
         GTUIInfos.init();
+
+        IBlockWithClientMeta.register();
 
         for (Runnable tRunnable : GregTechAPI.sAfterGTPreload) {
             tRunnable.run();
@@ -338,7 +337,6 @@ public class GTMod implements IGTMod {
         }
 
         gregtechproxy.onLoad();
-
         new MTERecipeLoader().run();
 
         new GTItemIterator().run();
@@ -351,6 +349,8 @@ public class GTMod implements IGTMod {
         if (Mods.HoloInventory.isModLoaded()) {
             HoloInventory.init();
         }
+
+        GTStructureChannels.register();
 
         LHECoolantRegistry.registerBaseCoolants();
 
@@ -479,18 +479,8 @@ public class GTMod implements IGTMod {
             GTForestryCompat.transferCentrifugeRecipes();
             GTForestryCompat.transferSqueezerRecipes();
         }
-        MTEDigitalChestBase.registerAEIntegration();
-        MTEHatchNonConsumableBase.registerAEIntegration();
-        ItemStack facade = AEApi.instance()
-            .definitions()
-            .items()
-            .facade()
-            .maybeItem()
-            .transform(i -> new ItemStack(i, 1, GTValues.W))
-            .orNull();
-        if (facade != null) {
-            GregTechAPI.registerCover(facade, null, new CoverFacadeAE());
-        }
+
+        AE2Compat.onPostInit();
 
         Arrays
             .stream(
@@ -738,10 +728,6 @@ public class GTMod implements IGTMod {
         return gregtechproxy.addArmor(aArmorPrefix);
     }
 
-    public void doSonictronSound(ItemStack aStack, World aWorld, double aX, double aY, double aZ) {
-        gregtechproxy.doSonictronSound(aStack, aWorld, aX, aY, aZ);
-    }
-
     @Mod.EventHandler
     public void onIDChangingEvent(FMLModIdMappingEvent aEvent) {
         GTUtility.reInit();
@@ -770,18 +756,13 @@ public class GTMod implements IGTMod {
     }
 
     @Mod.EventHandler
+    public void onServerStopped(FMLServerStoppedEvent event) {
+        gregtechproxy.onServerStopped();
+    }
+
+    @Mod.EventHandler
     public void onMissingMappings(FMLMissingMappingsEvent event) {
-        for (FMLMissingMappingsEvent.MissingMapping mapping : event.getAll()) {
-            if (mapping.type == GameRegistry.Type.BLOCK) {
-                if ("dreamcraft:gt.blockcasingsNH".equals(mapping.name)) {
-                    mapping.remap(GregTechAPI.sBlockCasingsNH);
-                }
-            } else if (mapping.type == GameRegistry.Type.ITEM) {
-                if ("dreamcraft:gt.blockcasingsNH".equals(mapping.name)) {
-                    mapping.remap(Item.getItemFromBlock(GregTechAPI.sBlockCasingsNH));
-                }
-            }
-        }
+        MissingMappingsHandler.handleMappings(event.getAll());
     }
 
     public static void logStackTrace(Throwable t) {

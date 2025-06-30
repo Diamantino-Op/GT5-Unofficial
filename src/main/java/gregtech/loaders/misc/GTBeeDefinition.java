@@ -92,6 +92,7 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.MaterialsKevlar;
+import gregtech.api.enums.MetaTileEntityIDs;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.util.GTLanguageManager;
 import gregtech.api.util.GTModHandler;
@@ -448,7 +449,24 @@ public enum GTBeeDefinition implements IBeeDefinition {
         IBeeMutationCustom tMutation = dis.registerMutation(REDSTONE, RUBY, 4);
         tMutation.requireResource("blockFirestone");
     }),
-
+    PRISMATIC(GTBranchDefinition.GEM, "Prismatic", false, new Color(0x117777), new Color(0xcfe4e4), beeSpecies -> {
+        beeSpecies.addSpecialty(GTBees.combs.getStackForType(CombType.PRISMATIC), 0.1f);
+        beeSpecies.setHumidity(DAMP);
+        beeSpecies.setTemperature(COLD);
+        beeSpecies.setHasEffect();
+    }, template -> {
+        AlleleHelper.instance.set(template, SPEED, Speed.NORMAL);
+        AlleleHelper.instance.set(template, LIFESPAN, Lifespan.NORMAL);
+        AlleleHelper.instance.set(template, TOLERANT_FLYER, true);
+        AlleleHelper.instance.set(template, TEMPERATURE_TOLERANCE, Tolerance.BOTH_1);
+        AlleleHelper.instance.set(template, EFFECT, getEffect(MAGICBEES, "SlowSpeed"));
+        AlleleHelper.instance.set(template, FLOWER_PROVIDER, Flowers.END);
+        AlleleHelper.instance.set(template, FLOWERING, Flowering.SLOWEST);
+    }, dis -> {
+        IBeeMutationCustom tMutation = dis.registerMutation(CERTUS, getSpecies(EXTRABEES, "ocean"), 10);
+        tMutation.restrictHumidity(DAMP);
+        tMutation.requireResource("blockPrismarine");
+    }),
     // Metal Line
     COPPER(GTBranchDefinition.METAL, "Copper", true, new Color(0xFF6600), new Color(0xE65C00), beeSpecies -> {
         beeSpecies.addProduct(GTBees.combs.getStackForType(CombType.SLAG), 0.30f);
@@ -719,6 +737,26 @@ public enum GTBeeDefinition implements IBeeDefinition {
         tMutation.addMutationCondition(new GTBees.DimensionMutationCondition(60, "Bedrock")); // Thaumic Tinkerer
         // Bedrock Dim
     }),
+    Netherite(GTBranchDefinition.RAREMETAL, "Netherite", false, new Color(0x31291a), new Color(0xada9aa),
+        beeSpecies -> {
+            beeSpecies.addSpecialty(GTBees.combs.getStackForType(CombType.NETHERITE), 0.1f);
+            beeSpecies.setHumidity(ARID);
+            beeSpecies.setTemperature((HELLISH));
+            beeSpecies.setHasEffect();
+        }, template -> {
+            AlleleHelper.instance.set(template, SPEED, Speed.SLOWEST);
+            AlleleHelper.instance.set(template, LIFESPAN, Lifespan.NORMAL);
+            AlleleHelper.instance.set(template, EFFECT, AlleleEffect.effectCreeper);
+            AlleleHelper.instance.set(template, TEMPERATURE_TOLERANCE, Tolerance.NONE);
+            AlleleHelper.instance.set(template, NOCTURNAL, true);
+            AlleleHelper.instance.set(template, CAVE_DWELLING, true);
+            AlleleHelper.instance.set(template, FLOWER_PROVIDER, Flowers.NETHER);
+            AlleleHelper.instance.set(template, FLOWERING, Flowering.SLOWEST);
+        }, dis -> {
+            IBeeMutationCustom tMutation = dis.registerMutation(getSpecies(FORESTRY, "Demonic"), DIAMOND, 3);
+            tMutation.restrictTemperature(HELLISH);
+            tMutation.requireResource(GregTechAPI.sBlockMetal9, 12);
+        }),
 
     // IC2
     COOLANT(GTBranchDefinition.IC2, "Coolant", false, new Color(0x144F5A), new Color(0x2494A2), beeSpecies -> {
@@ -1331,7 +1369,7 @@ public enum GTBeeDefinition implements IBeeDefinition {
     }, dis -> {
         IBeeMutationCustom tMutation = dis.registerMutation(NAQUADAH, THAUMIUMSHARD, 2);
         if (AdvancedSolarPanel.isModLoaded())
-            tMutation.requireResource(GameRegistry.findBlock(AdvancedSolarPanel.ID, "BlockAdvSolarPanel"), 2);
+            tMutation.requireResource(GregTechAPI.sBlockMachines, MetaTileEntityIDs.SOLAR_PANEL_HV.ID);
         tMutation.addMutationCondition(new GTBees.BiomeIDMutationCondition(9, "END Biome")); // sky end biome
     }),
     THORIUM(GTBranchDefinition.RADIOACTIVE, "Thorium", false, new Color(0x005000), new Color(0x001E00), beeSpecies -> {
@@ -1377,7 +1415,7 @@ public enum GTBeeDefinition implements IBeeDefinition {
         }, dis -> {
             IMutationCustom tMutation = dis.registerMutation(LUTETIUM, CHROME, 5, 4)
                 .setIsSecret();
-            GregTechAPI.sGTCompleteLoad.add(() -> tMutation.requireResource(GregTechAPI.sBlockMachines, 32020));
+            tMutation.requireResource(GregTechAPI.sBlockMetal1, 2);
         }),
     NEUTRONIUM(GTBranchDefinition.RADIOACTIVE, "Neutronium", false, new Color(0xFFF0F0), new Color(0xFAFAFA),
         beeSpecies -> {
@@ -2506,11 +2544,14 @@ public enum GTBeeDefinition implements IBeeDefinition {
     RAREEARTH(GTBranchDefinition.RAREMETAL, "RareEarth", false, new Color(0x555643), new Color(0x343428),
         beeSpecies -> {
             beeSpecies.addProduct(GTBees.combs.getStackForType(CombType.RAREEARTH), 0.20f);
-            beeSpecies.addSpecialty(GTBees.combs.getStackForType(CombType.NEODYMIUM), 0.05f);
+            beeSpecies.addSpecialty(GTBees.combs.getStackForType(CombType.REFINEDRAREEARTH), 0.05f);
             beeSpecies.setHumidity(EnumHumidity.NORMAL);
             beeSpecies.setTemperature(NORMAL);
+            // Makes it only work in the Mega Apiary NOTE: COMB MUST BE SPECIALITY COMB
+            beeSpecies.setJubilanceProvider(JubilanceMegaApiary.instance);
         }, template -> AlleleHelper.instance.set(template, SPEED, Speed.SLOWEST),
         dis -> dis.registerMutation(FLUORINE, REDSTONE, 10)),
+
     NEODYMIUM(GTBranchDefinition.RAREMETAL, "Neodymium", false, new Color(0x555555), new Color(0x4F4F4F),
         beeSpecies -> {
             beeSpecies.addProduct(GTBees.combs.getStackForType(CombType.RAREEARTH), 0.15f);
@@ -2537,8 +2578,7 @@ public enum GTBeeDefinition implements IBeeDefinition {
         AlleleHelper.instance.set(template, LIFESPAN, Lifespan.LONGEST);
     }, dis -> {
         IBeeMutationCustom tMutation = dis.registerMutation(NEODYMIUM, HYDROGEN, 5, 4);
-        // Compact fusion reactor mark 1 controller
-        GregTechAPI.sGTCompleteLoad.add(() -> tMutation.requireResource(GregTechAPI.sBlockMachines, 32019));
+        tMutation.requireResource(GregTechAPI.sBlockMetal3, 3);
     }),
     // infused Shards line
     AIR(GTBranchDefinition.INFUSEDSHARD, "Air", false, new Color(0xFFFF7E), new Color(0x60602F), beeSpecies -> {

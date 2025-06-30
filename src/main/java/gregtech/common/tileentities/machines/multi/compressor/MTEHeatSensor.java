@@ -1,9 +1,10 @@
 package gregtech.common.tileentities.machines.multi.compressor;
 
+import static net.minecraft.util.StatCollector.translateToLocal;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.gtnewhorizons.modularui.api.math.Alignment;
@@ -14,7 +15,6 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.gtnewhorizons.modularui.common.widget.textfield.NumericWidget;
 
 import gregtech.api.enums.Textures;
-import gregtech.api.gui.modularui.GTUIInfos;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
@@ -22,7 +22,6 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.render.TextureFactory;
-import gregtech.api.util.GTUtility;
 import gregtech.common.gui.modularui.widget.CoverCycleButtonWidget;
 
 public class MTEHeatSensor extends MTEHatch {
@@ -48,17 +47,7 @@ public class MTEHeatSensor extends MTEHatch {
     }
 
     @Override
-    public boolean isSimpleMachine() {
-        return true;
-    }
-
-    @Override
     public boolean isFacingValid(ForgeDirection facing) {
-        return true;
-    }
-
-    @Override
-    public boolean isAccessAllowed(EntityPlayer aPlayer) {
         return true;
     }
 
@@ -87,7 +76,7 @@ public class MTEHeatSensor extends MTEHatch {
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer, ForgeDirection side,
         float aX, float aY, float aZ) {
-        GTUIInfos.openGTTileEntityUI(aBaseMetaTileEntity, aPlayer);
+        openGui(aPlayer);
         return true;
     }
 
@@ -151,19 +140,19 @@ public class MTEHeatSensor extends MTEHatch {
     }
 
     public void addUIWidgets(ModularWindow.Builder builder, UIBuildContext buildContext) {
-        final String INVERTED = GTUtility.trans("INVERTED", "Inverted");
-        final String NORMAL = GTUtility.trans("NORMAL", "Normal");
-
         builder.widget(
             new CoverCycleButtonWidget().setToggle(() -> inverted, (val) -> inverted = val)
                 .setTextureGetter(
                     (state) -> state == 1 ? GTUITextures.OVERLAY_BUTTON_REDSTONE_ON
                         : GTUITextures.OVERLAY_BUTTON_REDSTONE_OFF)
-                .addTooltip(0, NORMAL)
-                .addTooltip(1, INVERTED)
+                .addTooltip(0, translateToLocal("gt.interact.desc.normal"))
+                .addTooltip(1, translateToLocal("gt.interact.desc.inverted"))
                 .setPos(10, 8))
             .widget(
-                new TextWidget().setStringSupplier(() -> inverted ? INVERTED : NORMAL)
+                new TextWidget()
+                    .setStringSupplier(
+                        () -> inverted ? translateToLocal("gt.interact.desc.inverted")
+                            : translateToLocal("gt.interact.desc.normal"))
                     .setDefaultColor(COLOR_TEXT_GRAY.get())
                     .setTextAlignment(Alignment.CenterLeft)
                     .setPos(28, 12))
@@ -180,8 +169,7 @@ public class MTEHeatSensor extends MTEHatch {
                     .setPos(10, 28)
                     .setSize(77, 12))
             .widget(
-                new TextWidget(StatCollector.translateToLocal("GT5U.gui.text.heat_sensor"))
-                    .setDefaultColor(COLOR_TEXT_GRAY.get())
+                new TextWidget(translateToLocal("GT5U.gui.text.heat_sensor")).setDefaultColor(COLOR_TEXT_GRAY.get())
                     .setTextAlignment(Alignment.CenterLeft)
                     .setPos(90, 30));
     }

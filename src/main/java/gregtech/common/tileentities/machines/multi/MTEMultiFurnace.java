@@ -14,9 +14,13 @@ import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_MULTI_SMELTER
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_MULTI_SMELTER_ACTIVE_GLOW;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_FRONT_MULTI_SMELTER_GLOW;
 import static gregtech.api.enums.Textures.BlockIcons.casingTexturePages;
+import static gregtech.api.util.GTStructureUtility.activeCoils;
+import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
+import static gregtech.api.util.GTStructureUtility.ofCoil;
 import static gregtech.api.util.GTUtility.validMTEList;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -37,6 +41,7 @@ import gregtech.api.enums.HeatingCoilLevel;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
@@ -44,18 +49,17 @@ import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTModHandler;
-import gregtech.api.util.GTStructureUtility;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.OverclockCalculator;
+import gregtech.common.tileentities.machines.MTEHatchOutputBusME;
 
 public class MTEMultiFurnace extends MTEAbstractMultiFurnace<MTEMultiFurnace> implements ISurvivalConstructable {
 
     private int mLevel = 0;
-    private int mCostDiscount = 1;
 
     private static final long RECIPE_EUT = 4;
-    private static final int RECIPE_DURATION = 512;
+    private static final int RECIPE_DURATION = 128;
     private static final int CASING_INDEX = 11;
     private static final String STRUCTURE_PIECE_MAIN = "main";
     private static final IStructureDefinition<MTEMultiFurnace> STRUCTURE_DEFINITION = StructureDefinition
@@ -65,12 +69,11 @@ public class MTEMultiFurnace extends MTEAbstractMultiFurnace<MTEMultiFurnace> im
             transpose(new String[][] { { "ccc", "cmc", "ccc" }, { "CCC", "C-C", "CCC" }, { "b~b", "bbb", "bbb" } }))
         .addElement('c', ofBlock(GregTechAPI.sBlockCasings1, CASING_INDEX))
         .addElement('m', Muffler.newAny(CASING_INDEX, 2))
-        .addElement('C', GTStructureUtility.ofCoil(MTEMultiFurnace::setCoilLevel, MTEMultiFurnace::getCoilLevel))
+        .addElement('C', activeCoils(ofCoil(MTEMultiFurnace::setCoilLevel, MTEMultiFurnace::getCoilLevel)))
         .addElement(
             'b',
             ofChain(
-                GTStructureUtility.<MTEMultiFurnace>buildHatchAdder()
-                    .atLeast(Maintenance, InputBus, OutputBus, Energy)
+                buildHatchAdder(MTEMultiFurnace.class).atLeast(Maintenance, InputBus, OutputBus, Energy)
                     .casingIndex(CASING_INDEX)
                     .dot(1)
                     .build(),
@@ -94,8 +97,7 @@ public class MTEMultiFurnace extends MTEAbstractMultiFurnace<MTEMultiFurnace> im
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType("Furnace")
-            .addInfo("Smelts up to 8-8192 items at once")
-            .addInfo("Items smelted increases with coil tier")
+            .addInfo("Smelts 4 * 2^(Coil Tier) items in parallel")
             .addPollutionAmount(getPollutionPerSecond(null))
             .beginStructureBlock(3, 3, 3, true)
             .addController("Front bottom")
@@ -144,52 +146,55 @@ public class MTEMultiFurnace extends MTEAbstractMultiFurnace<MTEMultiFurnace> im
         return GTMod.gregtechproxy.mPollutionMultiSmelterPerSecond;
     }
 
+    // Not GPL
+    @Override
+    public boolean supportsPowerPanel() {
+        return false;
+    }
+
     @Override
     @NotNull
     public CheckRecipeResult checkProcessing() {
-        ArrayList<ItemStack> tInputList = getAllStoredInputs();
-        if (tInputList.isEmpty()) return CheckRecipeResultRegistry.NO_RECIPE;
+        List<ItemStack> tInput = getAllStoredInputs();
+        long availableEUt = GTUtility.roundUpVoltage(getMaxInputVoltage());
+        if (availableEUt < RECIPE_EUT) {
+            return CheckRecipeResultRegistry.insufficientPower(RECIPE_EUT);
+        }
+        if (tInput.isEmpty()) {
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+        int maxParallel = this.mLevel;
+        int originalMaxParallel = this.mLevel;
 
-        int fakeOriginalMaxParallel = 1;
-        OverclockCalculator calculator = new OverclockCalculator().setEUt(getAverageInputVoltage())
-            .setAmperage(getMaxInputAmps())
+        OverclockCalculator calculator = new OverclockCalculator().setEUt(availableEUt)
             .setRecipeEUt(RECIPE_EUT)
             .setDuration(RECIPE_DURATION)
-            .setAmperageOC(mEnergyHatches.size() != 1)
-            .setParallel(fakeOriginalMaxParallel);
+            .setParallel(originalMaxParallel);
 
-        int maxParallel = this.mLevel;
-        int originalMaxParallel = maxParallel;
-        double tickTimeAfterOC = calculator.calculateDurationUnderOneTick();
-        if (tickTimeAfterOC < 1) {
-            maxParallel = GTUtility.safeInt((long) (maxParallel / tickTimeAfterOC), 0);
-        }
+        maxParallel = GTUtility.safeInt((long) (maxParallel * calculator.calculateMultiplierUnderOneTick()), 0);
 
         int maxParallelBeforeBatchMode = maxParallel;
         if (isBatchModeEnabled()) {
             maxParallel = GTUtility.safeInt((long) maxParallel * getMaxBatchSize(), 0);
         }
 
-        // Calculate parallel
-        int currentParallel = 0;
-        for (ItemStack item : tInputList) {
+        int currentParallel = (int) Math.min(maxParallel, availableEUt / RECIPE_EUT);
+        int itemParallel = 0;
+        for (ItemStack item : tInput) {
             ItemStack smeltedOutput = GTModHandler.getSmeltingOutput(item, false, null);
             if (smeltedOutput != null) {
-                if (item.stackSize <= (maxParallel - currentParallel)) {
-                    currentParallel += item.stackSize;
-                } else {
-                    currentParallel = maxParallel;
-                    break;
-                }
+                int parallelsLeft = currentParallel - itemParallel;
+                if (parallelsLeft <= 0) break;
+                itemParallel += Math.min(item.stackSize, parallelsLeft);
             }
         }
+
+        currentParallel = itemParallel;
         if (currentParallel <= 0) {
             return CheckRecipeResultRegistry.NO_RECIPE;
         }
         int currentParallelBeforeBatchMode = Math.min(currentParallel, maxParallelBeforeBatchMode);
-        int fakeCurrentParallel = (int) Math.ceil((double) currentParallelBeforeBatchMode / originalMaxParallel);
-
-        calculator.setCurrentParallel(fakeCurrentParallel)
+        calculator.setCurrentParallel(currentParallelBeforeBatchMode)
             .calculate();
 
         double batchMultiplierMax = 1;
@@ -198,38 +203,111 @@ public class MTEMultiFurnace extends MTEAbstractMultiFurnace<MTEMultiFurnace> im
             batchMultiplierMax = (double) getMaxBatchSize() / calculator.getDuration();
             batchMultiplierMax = Math.min(batchMultiplierMax, (double) currentParallel / maxParallelBeforeBatchMode);
         }
+
         int finalParallel = (int) (batchMultiplierMax * currentParallelBeforeBatchMode);
 
-        // Consume inputs and generate outputs
-        ArrayList<ItemStack> smeltedOutputs = new ArrayList<>();
-        int remainingCost = finalParallel;
-        for (ItemStack item : tInputList) {
-            ItemStack smeltedOutput = GTModHandler.getSmeltingOutput(item, false, null);
-            if (smeltedOutput != null) {
-                if (remainingCost >= item.stackSize) {
-                    remainingCost -= item.stackSize;
-                    smeltedOutput.stackSize *= item.stackSize;
-                    item.stackSize = 0;
-                    smeltedOutputs.add(smeltedOutput);
-                } else {
-                    smeltedOutput.stackSize *= remainingCost;
-                    item.stackSize -= remainingCost;
-                    smeltedOutputs.add(smeltedOutput);
+        // Copy the getItemOutputSlots as to not mutate the output busses' slots.
+        List<ItemStack> outputSlots = new ArrayList<>();
+        for (ItemStack stack : getItemOutputSlots(null)) {
+            if (stack != null) {
+                outputSlots.add(stack.copy());
+            } else {
+                outputSlots.add(null);
+            }
+        }
+
+        boolean hasMEOutputBus = false;
+        for (final MTEHatch bus : validMTEList(mOutputBusses)) {
+            if (bus instanceof MTEHatchOutputBusME meBus) {
+                if (!meBus.isLocked() && meBus.canAcceptItem()) {
+                    hasMEOutputBus = true;
                     break;
                 }
             }
         }
+        // Consume items and generate outputs
+        ArrayList<ItemStack> smeltedOutputs = new ArrayList<>();
+        int toSmelt = finalParallel;
+        for (ItemStack item : tInput) {
+            ItemStack smeltedOutput = GTModHandler.getSmeltingOutput(item, false, null);
+            if (smeltedOutput != null) {
+                int maxOutput = 0;
+                int remainingToSmelt = Math.min(toSmelt, item.stackSize);
+
+                if (hasMEOutputBus) {
+                    // Has an unlocked ME Output Bus and therefore can always fit the full stack
+                    maxOutput = remainingToSmelt;
+                } else {
+
+                    // Calculate how many of this output can fit in the output slots
+                    int needed = remainingToSmelt;
+                    ItemStack outputType = smeltedOutput.copy();
+                    outputType.stackSize = 1;
+
+                    for (int i = 0; i < outputSlots.size(); i++) {
+                        ItemStack slot = outputSlots.get(i);
+                        if (slot == null) {
+                            // Empty slot: can fit a full stack
+                            int canFit = Math.min(needed, outputType.getMaxStackSize());
+                            ItemStack newStack = outputType.copy();
+                            newStack.stackSize = canFit;
+                            outputSlots.set(i, newStack); // Fill the slot
+                            maxOutput += canFit;
+                            needed -= canFit;
+                        } else if (slot.isItemEqual(outputType)) {
+                            int canFit;
+                            // Check for locked ME Output bus
+                            if (slot.stackSize == 65) {
+                                canFit = needed;
+                            } else {
+                                // Same type: can fit up to max stack size
+                                int space = outputType.getMaxStackSize() - slot.stackSize;
+                                canFit = Math.min(needed, space);
+                            }
+                            slot.stackSize += canFit;
+                            maxOutput += canFit;
+                            needed -= canFit;
+                            // No need to set, since slot is a reference
+                        }
+                        if (needed <= 0) break;
+                    }
+                }
+
+                // If void protection is enabled, only process what fits
+                int toProcess = protectsExcessItem() ? maxOutput : remainingToSmelt;
+
+                if (toProcess > 0) {
+                    ItemStack outputStack = smeltedOutput.copy();
+                    outputStack.stackSize *= toProcess;
+                    smeltedOutputs.add(outputStack);
+
+                    item.stackSize -= toProcess;
+                    toSmelt -= toProcess;
+                    if (toSmelt <= 0) break;
+                }
+            }
+        }
+        if (smeltedOutputs.isEmpty()) {
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+
         this.mOutputItems = smeltedOutputs.toArray(new ItemStack[0]);
 
         this.mEfficiency = 10000 - (getIdealStatus() - getRepairStatus()) * 1000;
         this.mEfficiencyIncrease = 10000;
         this.mMaxProgresstime = (int) (calculator.getDuration() * batchMultiplierMax);
         this.lEUt = calculator.getConsumption();
+        if (this.lEUt > 0) {
+            this.lEUt = -this.lEUt;
+        }
+        this.updateSlots();
 
-        if (this.lEUt > 0) this.lEUt = -this.lEUt;
-
-        updateSlots();
         return CheckRecipeResultRegistry.SUCCESSFUL;
+    }
+
+    @Override
+    public boolean supportsVoidProtection() {
+        return true;
     }
 
     @Override
@@ -240,9 +318,6 @@ public class MTEMultiFurnace extends MTEAbstractMultiFurnace<MTEMultiFurnace> im
     @Override
     public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
         this.mLevel = 0;
-        this.mCostDiscount = 1;
-
-        replaceDeprecatedCoils(aBaseMetaTileEntity);
 
         setCoilLevel(HeatingCoilLevel.None);
 
@@ -252,30 +327,9 @@ public class MTEMultiFurnace extends MTEAbstractMultiFurnace<MTEMultiFurnace> im
 
         if (mMaintenanceHatches.size() != 1) return false;
 
-        if (getCoilLevel().getHeat() < 9000) {
-            this.mLevel = 8 * getCoilLevel().getLevel();
-        } else {
-            this.mLevel = 1 << (getCoilLevel().getTier());
-        }
-        this.mCostDiscount = getCoilLevel().getCostDiscount();
-        return true;
-    }
+        this.mLevel = 4 << (getCoilLevel().ordinal() - 1);
 
-    private void replaceDeprecatedCoils(IGregTechTileEntity aBaseMetaTileEntity) {
-        final int xDir = aBaseMetaTileEntity.getBackFacing().offsetX;
-        final int zDir = aBaseMetaTileEntity.getBackFacing().offsetZ;
-        final int tX = aBaseMetaTileEntity.getXCoord() + xDir;
-        final int tY = aBaseMetaTileEntity.getYCoord();
-        final int tZ = aBaseMetaTileEntity.getZCoord() + zDir;
-        int tUsedMeta;
-        for (int xPos = tX - 1; xPos <= tX + 1; xPos++) for (int zPos = tZ - 1; zPos <= tZ + 1; zPos++) {
-            if ((xPos == tX) && (zPos == tZ)) continue;
-            tUsedMeta = aBaseMetaTileEntity.getMetaID(xPos, tY + 1, zPos);
-            if (tUsedMeta >= 12 && tUsedMeta <= 14
-                && aBaseMetaTileEntity.getBlock(xPos, tY + 1, zPos) == GregTechAPI.sBlockCasings1)
-                aBaseMetaTileEntity.getWorld()
-                    .setBlock(xPos, tY + 1, zPos, GregTechAPI.sBlockCasings5, tUsedMeta - 12, 3);
-        }
+        return true;
     }
 
     @Override
@@ -337,10 +391,6 @@ public class MTEMultiFurnace extends MTEAbstractMultiFurnace<MTEMultiFurnace> im
             StatCollector.translateToLocal("GT5U.MS.multismelting") + ": "
                 + EnumChatFormatting.GREEN
                 + mLevel
-                + EnumChatFormatting.RESET
-                + " Discount: (EU/t) / "
-                + EnumChatFormatting.GREEN
-                + GTUtility.formatNumbers(mCostDiscount)
                 + EnumChatFormatting.RESET,
             StatCollector.translateToLocal("GT5U.multiblock.pollution") + ": "
                 + EnumChatFormatting.GREEN
@@ -357,7 +407,7 @@ public class MTEMultiFurnace extends MTEAbstractMultiFurnace<MTEMultiFurnace> im
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
-        return survivialBuildPiece(STRUCTURE_PIECE_MAIN, stackSize, 1, 2, 0, elementBudget, env, false, true);
+        return survivalBuildPiece(STRUCTURE_PIECE_MAIN, stackSize, 1, 2, 0, elementBudget, env, false, true);
     }
 
     @Override
@@ -367,13 +417,16 @@ public class MTEMultiFurnace extends MTEAbstractMultiFurnace<MTEMultiFurnace> im
 
     @Override
     public boolean onWireCutterRightClick(ForgeDirection side, ForgeDirection wrenchingSide, EntityPlayer aPlayer,
-        float aX, float aY, float aZ) {
-        batchMode = !batchMode;
-        if (batchMode) {
-            GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("misc.BatchModeTextOn"));
-        } else {
-            GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("misc.BatchModeTextOff"));
+        float aX, float aY, float aZ, ItemStack aTool) {
+        if (aPlayer.isSneaking()) {
+            batchMode = !batchMode;
+            if (batchMode) {
+                GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("misc.BatchModeTextOn"));
+            } else {
+                GTUtility.sendChatToPlayer(aPlayer, StatCollector.translateToLocal("misc.BatchModeTextOff"));
+            }
+            return true;
         }
-        return true;
+        return false;
     }
 }

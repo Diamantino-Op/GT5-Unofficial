@@ -2,12 +2,12 @@ package gtPlusPlus.xmod.gregtech.api.metatileentity.implementations;
 
 import static gregtech.api.enums.Textures.BlockIcons.*;
 
-import net.minecraft.block.Block;
-import net.minecraft.client.renderer.RenderBlocks;
+import java.util.ArrayList;
+import java.util.List;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -18,16 +18,16 @@ import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.SoundResource;
-import gregtech.api.gui.modularui.GTUIInfos;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.items.MetaGeneratedTool;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
-import gregtech.api.objects.GTItemStack;
+import gregtech.api.render.RenderOverlay;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
@@ -41,7 +41,6 @@ import gtPlusPlus.core.util.math.MathUtils;
 import gtPlusPlus.core.util.minecraft.PlayerUtils;
 import gtPlusPlus.xmod.gregtech.common.tileentities.machines.multi.production.turbines.MTELargerTurbineBase;
 
-@SuppressWarnings("deprecation")
 public class MTEHatchTurbine extends MTEHatch {
 
     public boolean mHasController = false;
@@ -49,6 +48,7 @@ public class MTEHatchTurbine extends MTEHatch {
     private BlockPos mControllerLocation;
     public int mEUt = 0;
 
+    protected final List<RenderOverlay.OverlayTicket> overlayTickets = new ArrayList<>();
     private boolean mFormed;
     private boolean mHasTurbine;
 
@@ -56,12 +56,8 @@ public class MTEHatchTurbine extends MTEHatch {
         super(aID, aName, aNameRegional, aTier, 16, "Turbine Rotor holder for XL Turbines");
     }
 
-    public MTEHatchTurbine(String aName, int aTier, String aDescription, ITexture[][][] aTextures) {
-        super(aName, aTier, 1, aDescription, aTextures);
-    }
-
     public MTEHatchTurbine(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
-        super(aName, aTier, 1, aDescription[0], aTextures);
+        super(aName, aTier, 1, aDescription, aTextures);
     }
 
     @Override
@@ -96,18 +92,8 @@ public class MTEHatchTurbine extends MTEHatch {
     }
 
     @Override
-    public boolean isSimpleMachine() {
-        return true;
-    }
-
-    @Override
     public boolean isFacingValid(ForgeDirection facing) {
         return facing.offsetY == 0;
-    }
-
-    @Override
-    public boolean isAccessAllowed(EntityPlayer aPlayer) {
-        return true;
     }
 
     @Override
@@ -150,7 +136,7 @@ public class MTEHatchTurbine extends MTEHatch {
 
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
-        GTUIInfos.openGTTileEntityUI(aBaseMetaTileEntity, aPlayer);
+        openGui(aPlayer);
         return true;
     }
 
@@ -287,23 +273,33 @@ public class MTEHatchTurbine extends MTEHatch {
     }
 
     @Override
-    public boolean renderInWorld(IBlockAccess aWorld, int aX, int aY, int aZ, Block aBlock, RenderBlocks aRenderer) {
-        if (!mFormed) return false;
+    public void onFirstTick(IGregTechTileEntity aBaseMetaTileEntity) {
+        super.onFirstTick(aBaseMetaTileEntity);
+        setTurbineOverlay();
+    }
+
+    protected void setTurbineOverlay() {
+        IGregTechTileEntity tile = getBaseMetaTileEntity();
+        if (tile.isServerSide()) return;
 
         IIconContainer[] tTextures;
-        if (getBaseMetaTileEntity().isActive()) tTextures = getTurbineTextureActive();
+        if (tile.isActive()) tTextures = getTurbineTextureActive();
         else if (hasTurbine()) tTextures = getTurbineTextureFull();
         else tTextures = getTurbineTextureEmpty();
-        GTUtilityClient.renderTurbineOverlay(
-            aWorld,
-            aX,
-            aY,
-            aZ,
-            aRenderer,
+
+        GTUtilityClient.setTurbineOverlay(
+            tile.getWorld(),
+            tile.getXCoord(),
+            tile.getYCoord(),
+            tile.getZCoord(),
             ExtendedFacing.of(getBaseMetaTileEntity().getFrontFacing()),
-            null,
-            tTextures);
-        return false;
+            tTextures,
+            overlayTickets);
+    }
+
+    @Override
+    public void onTextureUpdate() {
+        setTurbineOverlay();
     }
 
     public boolean usingAnimations() {
@@ -322,7 +318,7 @@ public class MTEHatchTurbine extends MTEHatch {
 
     @Override
     public int[] getAccessibleSlotsFromSide(int ordinalSide) {
-        return new int[] {};
+        return GTValues.emptyIntArray;
     }
 
     @Override
@@ -342,12 +338,13 @@ public class MTEHatchTurbine extends MTEHatch {
     }
 
     @Override
-    public boolean allowCoverOnSide(ForgeDirection side, GTItemStack aStack) {
+    public boolean allowCoverOnSide(ForgeDirection side, ItemStack coverItem) {
         return false;
     }
 
     @Override
-    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ) {
+    public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
+        ItemStack aTool) {
         if (!aPlayer.isSneaking()) {
             PlayerUtils.messagePlayer(aPlayer, "Using Animations? " + usingAnimations());
             PlayerUtils.messagePlayer(aPlayer, "Has Controller? " + this.mHasController);
@@ -378,32 +375,30 @@ public class MTEHatchTurbine extends MTEHatch {
 
     @Override
     public boolean onWrenchRightClick(ForgeDirection side, ForgeDirection wrenchingSide, EntityPlayer aPlayer, float aX,
-        float aY, float aZ) {
+        float aY, float aZ, ItemStack aTool) {
         if (this.getBaseMetaTileEntity()
             .isServerSide() && !aPlayer.isSneaking()) {
-            ItemStack tCurrentItem = aPlayer.inventory.getCurrentItem();
-            if (tCurrentItem != null) {
-                if (tCurrentItem.getItem() instanceof MetaGeneratedTool) {
-                    return onToolClick(tCurrentItem, aPlayer, wrenchingSide);
+            if (aTool != null) {
+                if (aTool.getItem() instanceof MetaGeneratedTool) {
+                    return onToolClick(aTool, aPlayer, wrenchingSide);
                 }
             }
         }
-        return super.onWrenchRightClick(side, wrenchingSide, aPlayer, aX, aY, aZ);
+        return super.onWrenchRightClick(side, wrenchingSide, aPlayer, aX, aY, aZ, aTool);
     }
 
     @Override
     public boolean onSolderingToolRightClick(ForgeDirection side, ForgeDirection wrenchingSide, EntityPlayer aPlayer,
-        float aX, float aY, float aZ) {
+        float aX, float aY, float aZ, ItemStack aTool) {
         if (this.getBaseMetaTileEntity()
             .isServerSide()) {
-            ItemStack tCurrentItem = aPlayer.inventory.getCurrentItem();
-            if (tCurrentItem != null) {
-                if (tCurrentItem.getItem() instanceof MetaGeneratedTool) {
-                    return onToolClick(tCurrentItem, aPlayer, wrenchingSide);
+            if (aTool != null) {
+                if (aTool.getItem() instanceof MetaGeneratedTool) {
+                    return onToolClick(aTool, aPlayer, wrenchingSide);
                 }
             }
         }
-        return false;
+        return super.onSolderingToolRightClick(side, wrenchingSide, aPlayer, aX, aY, aZ, aTool);
     }
 
     public boolean onToolClick(ItemStack tCurrentItem, EntityPlayer aPlayer, ForgeDirection side) {
@@ -462,6 +457,7 @@ public class MTEHatchTurbine extends MTEHatch {
         if (message.getController() != null) clearController();
         else setController(message.getController());
         getBaseMetaTileEntity().issueTextureUpdate();
+        setTurbineOverlay();
     }
 
     public void sendUpdate() {
@@ -479,5 +475,11 @@ public class MTEHatchTurbine extends MTEHatch {
             getBaseMetaTileEntity().getYCoord(),
             getBaseMetaTileEntity().getZCoord(),
             64.0D);
+    }
+
+    @Override
+    public void onRemoval() {
+        super.onRemoval();
+        if (getBaseMetaTileEntity().isClientSide()) GTUtilityClient.clearTurbineOverlay(overlayTickets);
     }
 }

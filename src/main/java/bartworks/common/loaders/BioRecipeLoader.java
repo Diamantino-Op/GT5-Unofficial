@@ -32,6 +32,7 @@ import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TierEU;
+import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTUtility;
 
@@ -43,8 +44,7 @@ public class BioRecipeLoader {
     }
 
     public static void registerWaterBasedBioLabIncubations() {
-        FluidStack[] easyFluids = { Materials.Water.getFluid(1000L),
-            FluidRegistry.getFluidStack("ic2distilledwater", 1000) };
+        FluidStack[] easyFluids = { Materials.Water.getFluid(1_000), GTModHandler.getDistilledWater(1_000) };
         for (FluidStack fluidStack : easyFluids) {
 
             GTValues.RA.stdBuilder()
@@ -122,8 +122,7 @@ public class BioRecipeLoader {
     }
 
     public static void registerWaterBasedBacterialVatRecipes() {
-        FluidStack[] easyFluids = { Materials.Water.getFluid(1000L),
-            FluidRegistry.getFluidStack("ic2distilledwater", 1000) };
+        FluidStack[] easyFluids = { Materials.Water.getFluid(1_000), GTModHandler.getDistilledWater(1_000) };
         for (FluidStack fluidStack : easyFluids) {
             if (CropsPlusPlus.isModLoaded()) {
                 GTValues.RA.stdBuilder()
@@ -134,7 +133,6 @@ public class BioRecipeLoader {
                     .metadata(GLASS, 3)
                     .duration(17 * SECONDS + 10 * TICKS)
                     .eut(TierEU.RECIPE_EV)
-                    .noOptimize()
                     .addTo(bacterialVatRecipes);
             }
 
@@ -146,7 +144,6 @@ public class BioRecipeLoader {
                 .metadata(GLASS, 3)
                 .duration(10 * SECONDS)
                 .eut(TierEU.RECIPE_MV)
-                .noOptimize()
                 .addTo(bacterialVatRecipes);
 
             GTValues.RA.stdBuilder()
@@ -160,7 +157,6 @@ public class BioRecipeLoader {
                 .metadata(GLASS, 3)
                 .duration(30 * SECONDS)
                 .eut(TierEU.RECIPE_LV)
-                .noOptimize()
                 .addTo(bacterialVatRecipes);
 
             GTValues.RA.stdBuilder()
@@ -171,7 +167,6 @@ public class BioRecipeLoader {
                 .metadata(GLASS, 3)
                 .duration(30 * SECONDS)
                 .eut(TierEU.RECIPE_LV)
-                .noOptimize()
                 .addTo(bacterialVatRecipes);
         }
     }
@@ -186,17 +181,15 @@ public class BioRecipeLoader {
             .metadata(GLASS, 3)
             .duration(20 * SECONDS)
             .eut(TierEU.RECIPE_LV)
-            .noOptimize()
             .addTo(bacterialVatRecipes);
 
         GTValues.RA.stdBuilder()
             .special(BioItemList.getPetriDish(BioCultureLoader.anaerobicOil))
-            .fluidInputs(Materials.FermentedBiomass.getFluid(10000))
-            .fluidOutputs(new FluidStack(FluidLoader.fulvicAcid, 1000))
+            .fluidInputs(Materials.FermentedBiomass.getFluid(10_000))
+            .fluidOutputs(new FluidStack(FluidLoader.fulvicAcid, 1_000))
             .metadata(GLASS, 3)
             .duration(2 * MINUTES + 17 * SECONDS + 8 * TICKS)
             .eut(TierEU.RECIPE_LV)
-            .noOptimize()
             .addTo(bacterialVatRecipes);
     }
 

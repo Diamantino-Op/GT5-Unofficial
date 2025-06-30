@@ -56,7 +56,7 @@ public class MTESteamMaceratorSteel extends MTEBasicMachineSteel {
         super.onPreTick(aBaseMetaTileEntity, aTick);
         if (aBaseMetaTileEntity.isClientSide() && aBaseMetaTileEntity.isActive()) {
             if (aBaseMetaTileEntity.getFrontFacing() != ForgeDirection.UP
-                && aBaseMetaTileEntity.getCoverIDAtSide(ForgeDirection.UP) == 0
+                && !aBaseMetaTileEntity.hasCoverAtSide(ForgeDirection.UP)
                 && !aBaseMetaTileEntity.getOpacityAtSide(ForgeDirection.UP)) {
 
                 new WorldSpawnedEventBuilder.ParticleEventBuilder().setMotion(0.0D, 0.0D, 0.0D)
@@ -79,6 +79,7 @@ public class MTESteamMaceratorSteel extends MTEBasicMachineSteel {
     @Override
     public int checkRecipe() {
         GTRecipe tRecipe = getRecipeMap().findRecipeQuery()
+            .caching(false)
             .items(getAllInputs())
             .voltage(TierEU.LV)
             .cachedRecipe(mLastRecipe)

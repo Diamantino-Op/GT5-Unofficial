@@ -1,9 +1,7 @@
 package gregtech.loaders.oreprocessing;
 
-import static gregtech.api.enums.GTValues.L;
 import static gregtech.api.enums.GTValues.NI;
 import static gregtech.api.enums.GTValues.RA;
-import static gregtech.api.enums.GTValues.W;
 import static gregtech.api.recipe.RecipeMaps.alloySmelterRecipes;
 import static gregtech.api.recipe.RecipeMaps.assemblerRecipes;
 import static gregtech.api.recipe.RecipeMaps.benderRecipes;
@@ -14,6 +12,8 @@ import static gregtech.api.recipe.RecipeMaps.fluidSolidifierRecipes;
 import static gregtech.api.recipe.RecipeMaps.implosionRecipes;
 import static gregtech.api.util.GTModHandler.RecipeBits.BUFFERED;
 import static gregtech.api.util.GTModHandler.RecipeBits.DO_NOT_CHECK_FOR_COLLISIONS;
+import static gregtech.api.util.GTRecipeBuilder.HALF_INGOTS;
+import static gregtech.api.util.GTRecipeBuilder.INGOTS;
 import static gregtech.api.util.GTRecipeBuilder.MINUTES;
 import static gregtech.api.util.GTRecipeBuilder.SECONDS;
 import static gregtech.api.util.GTRecipeBuilder.TICKS;
@@ -29,7 +29,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 
-import gregtech.api.GregTechAPI;
+import gregtech.api.covers.CoverRegistry;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
@@ -117,7 +117,7 @@ public class ProcessingPlate implements gregtech.api.interfaces.IOreRecipeRegist
             GTValues.RA.stdBuilder()
                 .itemInputs(ItemList.Shape_Mold_Plate.get(0L))
                 .itemOutputs(aMaterial.getPlates(1))
-                .fluidInputs(aMaterial.getMolten(L))
+                .fluidInputs(aMaterial.getMolten(1 * INGOTS))
                 .duration(1 * SECONDS + 12 * TICKS)
                 .eut(calculateRecipeEU(aMaterial, 8))
                 .addTo(fluidSolidifierRecipes);
@@ -132,7 +132,7 @@ public class ProcessingPlate implements gregtech.api.interfaces.IOreRecipeRegist
             GTModHandler.addCraftingRecipe(
                 GTUtility.copyAmount(2, aStack),
                 BUFFERED,
-                new Object[] { "XXX", 'X', new ItemStack(Items.reeds, 1, W) });
+                new Object[] { "XXX", 'X', new ItemStack(Items.reeds, 1, WILDCARD) });
         }
 
         if (aMaterial.mUnificatable && aMaterial.mMaterialInto == aMaterial) {
@@ -406,7 +406,7 @@ public class ProcessingPlate implements gregtech.api.interfaces.IOreRecipeRegist
             GTValues.RA.stdBuilder()
                 .itemInputs(ItemList.Shape_Mold_Casing.get(0L))
                 .itemOutputs(GTOreDictUnificator.get(OrePrefixes.itemCasing, aMaterial, 1L))
-                .fluidInputs(aMaterial.getMolten(L / 2))
+                .fluidInputs(aMaterial.getMolten(1 * HALF_INGOTS))
                 .duration(16 * TICKS)
                 .eut(calculateRecipeEU(aMaterial, 8))
                 .addTo(fluidSolidifierRecipes);
@@ -501,7 +501,7 @@ public class ProcessingPlate implements gregtech.api.interfaces.IOreRecipeRegist
                     .addTo(assemblerRecipes);
 
                 GTValues.RA.stdBuilder()
-                    .itemInputs(GTUtility.copyAmount(1, aStack), new ItemStack(Blocks.glass, 3, W))
+                    .itemInputs(GTUtility.copyAmount(1, aStack), new ItemStack(Blocks.glass, 3, WILDCARD))
                     .itemOutputs(GTModHandler.getIC2Item("reinforcedGlass", 4L))
                     .duration(20 * SECONDS)
                     .eut(4)
@@ -546,7 +546,7 @@ public class ProcessingPlate implements gregtech.api.interfaces.IOreRecipeRegist
         }
 
         // Register the cover
-        GregTechAPI.registerCover(
+        CoverRegistry.registerDecorativeCover(
             aStack,
             // If there is an ItemStack of Block for Materials
             tStack == NI ?
@@ -558,7 +558,6 @@ public class ProcessingPlate implements gregtech.api.interfaces.IOreRecipeRegist
                     .build()
                 :
                 // or copy Block texture
-                TextureFactory.of(Block.getBlockFromItem(tStack.getItem()), tStack.getItemDamage()),
-            null);
+                TextureFactory.of(Block.getBlockFromItem(tStack.getItem()), tStack.getItemDamage()));
     }
 }

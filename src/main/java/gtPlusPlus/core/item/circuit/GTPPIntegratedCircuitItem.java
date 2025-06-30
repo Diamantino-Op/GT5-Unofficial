@@ -32,8 +32,9 @@ import gregtech.api.objects.XSTR;
 import gregtech.api.util.GTLanguageManager;
 import gregtech.common.gui.modularui.uifactory.SelectItemUIFactory;
 import gtPlusPlus.core.util.math.MathUtils;
-import gtPlusPlus.core.util.minecraft.ItemUtils;
 
+// TODO Remove after 2.8
+@Deprecated
 public class GTPPIntegratedCircuitItem extends Item implements INetworkUpdatableItem {
 
     private final List<ItemStack> ALL_VARIANTS = new ArrayList<>();
@@ -64,7 +65,10 @@ public class GTPPIntegratedCircuitItem extends Item implements INetworkUpdatable
     @Override
     public void addInformation(ItemStack aStack, EntityPlayer p_77624_2_, List<String> aList, boolean p_77624_4_) {
         try {
-            aList.add("Configuration == " + aStack.getItemDamage());
+            aList.add(
+                StatCollector.translateToLocalFormatted(
+                    "gtpp.tooltip.integrated_circuit.configuration",
+                    aStack.getItemDamage()));
             aList.add(
                 GTLanguageManager
                     .addStringLocalization(getUnlocalizedName() + ".tooltip.0", "Right click to reconfigure"));
@@ -85,7 +89,7 @@ public class GTPPIntegratedCircuitItem extends Item implements INetworkUpdatable
 
     @Override
     public void getSubItems(Item aItem, CreativeTabs p_150895_2_, List<ItemStack> aList) {
-        aList.add(ItemUtils.simpleMetaStack(aItem, 0, 1));
+        aList.add(new ItemStack(aItem, 1, 0));
     }
 
     @Override

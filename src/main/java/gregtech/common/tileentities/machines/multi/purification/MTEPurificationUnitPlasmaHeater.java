@@ -25,6 +25,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -49,7 +50,6 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.render.TextureFactory;
-import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTStructureUtility;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
@@ -249,7 +249,7 @@ public class MTEPurificationUnitPlasmaHeater extends MTEPurificationUnitBase<MTE
 
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
-        return survivialBuildPiece(
+        return survivalBuildPiece(
             STRUCTURE_PIECE_MAIN,
             stackSize,
             STRUCTURE_X_OFFSET,
@@ -395,10 +395,22 @@ public class MTEPurificationUnitPlasmaHeater extends MTEPurificationUnitBase<MTE
                 9,
                 EnumChatFormatting.GOLD,
                 false)
-            .addOtherStructurePart("Input Hatch (Water)", EnumChatFormatting.GOLD + "1+", 1)
-            .addOtherStructurePart("Output Hatch", EnumChatFormatting.GOLD + "1", 1)
-            .addOtherStructurePart("Input Hatch (Coolant)", EnumChatFormatting.GOLD + "1", 2)
-            .addOtherStructurePart("Input Hatch (Plasma)", EnumChatFormatting.GOLD + "1", 3)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("GT5U.tooltip.structure.input_hatch_water"),
+                EnumChatFormatting.GOLD + "1+",
+                1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("GT5U.tooltip.structure.output_hatch"),
+                EnumChatFormatting.GOLD + "1",
+                1)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("GT5U.tooltip.structure.input_hatch_coolant"),
+                EnumChatFormatting.GOLD + "1",
+                2)
+            .addOtherStructurePart(
+                StatCollector.translateToLocal("GT5U.tooltip.structure.input_hatch_plasma"),
+                EnumChatFormatting.GOLD + "1",
+                3)
             .toolTipFinisher(AuthorNotAPenguin);
         return tt;
     }
@@ -437,7 +449,7 @@ public class MTEPurificationUnitPlasmaHeater extends MTEPurificationUnitBase<MTE
             FluidStack insertedWater = currentRecipe.mFluidInputs[0];
             // Multiply by 60 since that's the water:steam ratio in GTNH
             long steamAmount = insertedWater.amount * 60L;
-            addOutput(GTModHandler.getSteam(steamAmount));
+            addOutput(Materials.Steam.getGas(steamAmount));
         }
     }
 
@@ -512,8 +524,14 @@ public class MTEPurificationUnitPlasmaHeater extends MTEPurificationUnitBase<MTE
     @Override
     public String[] getInfoData() {
         ArrayList<String> infoData = new ArrayList<>(Arrays.asList(super.getInfoData()));
-        infoData.add("Current temperature: " + EnumChatFormatting.YELLOW + currentTemperature + "K");
-        infoData.add("Heating cycles completed this run: " + EnumChatFormatting.YELLOW + cyclesCompleted);
+        infoData.add(
+            StatCollector.translateToLocalFormatted(
+                "GT5U.infodata.purification_unit_plasma_heater.temperature",
+                "" + EnumChatFormatting.YELLOW + currentTemperature));
+        infoData.add(
+            StatCollector.translateToLocalFormatted(
+                "GT5U.infodata.purification_unit_plasma_heater.heating_cycles",
+                "" + EnumChatFormatting.YELLOW + cyclesCompleted));
         return infoData.toArray(new String[] {});
     }
 
@@ -533,11 +551,6 @@ public class MTEPurificationUnitPlasmaHeater extends MTEPurificationUnitBase<MTE
         cyclesCompleted = aNBT.getInteger("mCyclesCompleted");
         ruinedCycle = aNBT.getBoolean("mRuinedCycle");
         state = CycleState.valueOf(aNBT.getString("mCycleState"));
-    }
-
-    @Override
-    public boolean isCorrectMachinePart(ItemStack aStack) {
-        return true;
     }
 
     @Override

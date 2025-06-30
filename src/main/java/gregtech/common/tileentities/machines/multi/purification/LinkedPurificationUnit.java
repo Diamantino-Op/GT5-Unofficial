@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 
@@ -13,7 +14,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.util.GTUtil;
 
 /**
- * Small wrapper around a GT_MetaTileEntity_PurificationUnitBase, to be stored in the main purification plant
+ * Small wrapper around a MTEPurificationUnitBase, to be stored in the main purification plant
  * controller. May be useful for storing additional data in the controller that the individual units do not need
  * to know about.
  */
@@ -81,19 +82,19 @@ public class LinkedPurificationUnit {
 
     public String getStatusString() {
         if (this.isActive()) {
-            return EnumChatFormatting.GREEN + "Active";
+            return EnumChatFormatting.GREEN + StatCollector.translateToLocal("GT5U.gui.text.status.active");
         }
 
         PurificationUnitStatus status = this.mMetaTileEntity.status();
         switch (status) {
             case ONLINE -> {
-                return EnumChatFormatting.GREEN + "Online";
+                return EnumChatFormatting.GREEN + StatCollector.translateToLocal("GT5U.gui.text.status.online");
             }
             case DISABLED -> {
-                return EnumChatFormatting.YELLOW + "Disabled";
+                return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("GT5U.gui.text.status.disabled");
             }
             case INCOMPLETE_STRUCTURE -> {
-                return EnumChatFormatting.RED + "Incomplete Structure";
+                return EnumChatFormatting.RED + StatCollector.translateToLocal("GT5U.gui.text.status.incomplete");
             }
         }
 
