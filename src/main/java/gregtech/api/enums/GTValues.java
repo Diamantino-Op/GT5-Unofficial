@@ -603,6 +603,15 @@ public class GTValues {
             EnumChatFormatting.DARK_GREEN + BOLD,
             EnumChatFormatting.DARK_GREEN + OBFUSCATED + BOLD));
 
+    public static final String AuthorDiamondMaster = "Author: " + EnumChatFormatting.BLUE
+        + EnumChatFormatting.OBFUSCATED
+        + "AAA"
+        + EnumChatFormatting.RESET
+        + EnumChatFormatting.BLUE + "Diamond"
+        + EnumChatFormatting.AQUA + "Master"
+        + EnumChatFormatting.OBFUSCATED
+        + "AAA";
+
     public static final String TecTechHatches = "Supports " + TT + " laser and multi-amp hatches";
 
     public static final String AuthorPureBluez = "Author: " + EnumChatFormatting.WHITE
